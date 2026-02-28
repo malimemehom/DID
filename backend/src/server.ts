@@ -28,6 +28,13 @@ app.use('/api', setupRabbitHoleRoutes(null));
 app.use('/api/auth', setupAuthRoutes());
 app.use('/api/history', setupHistoryRoutes()); // Mounted history routes
 
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '../dist/frontend')));
+
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/frontend/index.html'));
+});
+
 // Export the setup express app for Vercel Serverless
 export default app;
 
