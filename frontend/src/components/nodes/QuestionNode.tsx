@@ -11,7 +11,7 @@ interface QuestionNodeData {
 const QuestionNode = ({ data }: NodeProps<QuestionNodeData>) => {
     return (
         <div
-            className={`relative rounded-lg p-4 font-light text-sm text-left shadow-lg cursor-pointer transition-colors group ${data.isCustom
+            className={`relative rounded-2xl p-4 font-light text-sm text-left shadow-lg cursor-pointer transition-colors group ${data.isCustom
                     ? 'bg-[#1a1a1a] text-white border border-[#5a4020] shadow-[0_4px_6px_-1px_rgba(90,64,32,0.3)]'
                     : 'bg-[#1a1a1a] text-white border border-[#333]'
                 }`}

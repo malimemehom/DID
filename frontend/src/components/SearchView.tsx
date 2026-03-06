@@ -464,7 +464,7 @@ const SearchView: React.FC = () => {
               style: {
                 ...n.style,
                 width: nodeWidth,
-                height: nodeHeight
+
               },
               data: {
                 ...n.data,
@@ -496,13 +496,12 @@ const SearchView: React.FC = () => {
                 style: {
                   ...n.style,
                   width: nodeWidth,
-                  minHeight: '500px',
-                  background: '#1a1a1a',
+
                   opacity: 1,
                   cursor: 'default'
                 },
                 data: {
-                  label: response.contextualQuery || questionText,
+                  label: response.shortTitle || response.contextualQuery || questionText,
                   content: response.response,
                   images: response.images?.map((img: ImageData) => img.url),
                   sources: response.sources,
@@ -623,13 +622,7 @@ const SearchView: React.FC = () => {
         position: { x: 0, y: 0 },
         style: {
           width: nodeWidth,
-          height: nodeHeight,
-          minHeight: nodeHeight,
-          background: '#1a1a1a',
-          color: '#fff',
-          border: '1px solid #333',
-          borderRadius: '8px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+
           cursor: 'default'
         }
       };
@@ -648,7 +641,7 @@ const SearchView: React.FC = () => {
       const mainNode: Node = {
         ...loadingNode,
         data: {
-          label: response.contextualQuery || query,
+          label: response.shortTitle || response.contextualQuery || query,
           content: response.response,
           images: response.images?.map((img: ImageData) => img.url),
           sources: response.sources,
