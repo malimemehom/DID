@@ -119,16 +119,20 @@ export function setupRabbitHoleRoutes(_runtime: any) {
             let shortTitle = "默认短标题"; // 初始化一个备用的
             let processedResponse = response; // 用来存放真正发给前端的正文
 
-            // 使用正则或者拆分去抓取刚才让 AI 写的 "#### 短标题：" 或者 "####短标题：" 或者包含 短标题 的标题
-            const titleMatch = response.match(/####\s*短标题：([^\n]+)/) || response.match(/####\s*短标题:\s*([^\n]+)/) || response.match(/####.*?([^\n]+)/);
+            // 使用正则或者拆分去抓取刚才让 AI 写的 "#### 短标题：" 或者 "####短标题："
+            const titleMatch = response.match(/####\s*短标题[：:]\s*([^\n]+)/);
             if (titleMatch && titleMatch[1]) {
-                // 如果找到了，把字数截断在 20 个字内以防 AI 不听话
+                // 如果找到了，把字数截断在 30 个字内以防 AI 不听话
                 shortTitle = titleMatch[1].trim().substring(0, 30);
                 // 移除这一行
-                processedResponse = response.replace(/####\s*短标题：[^\n]+\n*/, '').replace(/####\s*短标题:\s*[^\n]+\n*/, '').trim();
-                // 移除如果是其他形式的 #### 开头的第一行
-                if (!response.match(/####\s*短标题/)) {
-                    processedResponse = response.replace(/^####[^\n]+\n*/, '').trim();
+                processedResponse = response.replace(/####\s*短标题[：:][^\n]+\n*/, '').trim();
+            } else {
+                // 如果没找到明确的短标题，尝试提取第一行作为标题，但要确保它不是正文标题
+                const lines = response.split('\n').filter((l: string) => l.trim().length > 0);
+                if (lines.length > 0 && !lines[0].includes('背景与结论')) {
+                    shortTitle = lines[0].replace(/####\s*/, '').trim().substring(0, 30);
+                    // 移除第一行
+                    processedResponse = lines.slice(1).join('\n').trim();
                 }
             }
 

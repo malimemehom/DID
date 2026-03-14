@@ -72,22 +72,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Sidebar container */}
             <div
-                className={`fixed top-0 left-0 h-full bg-[#050505] border-r border-[#222] flex flex-col z-50 transition-transform duration-300 w-64 ${isOpen ? 'translate-x-0' : '-translate-x-full md:-translate-x-full'
+                className={`fixed top-0 left-0 h-full cyber-glass border-r border-white/5 flex flex-col z-50 transition-transform duration-300 w-64 ${isOpen ? 'translate-x-0' : '-translate-x-full md:-translate-x-full'
                     }`}
             >
-                <div className="p-4 flex items-center justify-between gap-2">
+                <div className="p-4 flex items-center justify-between gap-2 border-b border-white/5">
                     <button
                         onClick={() => setIsOpen(false)}
-                        className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-md transition-all hidden md:block"
+                        className="p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-md transition-all hidden md:block"
                         title="Close Sidebar"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                         </svg>
                     </button>
                     <button
                         onClick={onNewSession}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#ffffff] text-black hover:bg-white/90 transition-all duration-200 text-sm font-medium shadow-sm"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#ffffff]/90 text-black hover:bg-white transition-all duration-200 text-sm font-medium shadow-[0_0_15px_rgba(255,255,255,0.1)]"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
@@ -109,9 +109,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <div
                                 key={session.id}
                                 onClick={() => editingId !== session.id && onSelectSession(session)}
-                                className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors duration-200 ${currentSessionId === session.id
-                                    ? 'bg-[#1a1a1a] text-white'
-                                    : 'text-white/60 hover:bg-[#111111] hover:text-white/90 cursor-pointer'
+                                className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${currentSessionId === session.id
+                                    ? 'bg-white/10 text-white shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] border border-white/10'
+                                    : 'text-white/40 hover:bg-white/5 hover:text-white/80 cursor-pointer'
                                     }`}
                             >
                                 {editingId === session.id ? (
@@ -183,34 +183,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         Export JSON
                     </button>
 
-                    {/* Auth Section */}
+                </div>
+
+                <div className="p-4 border-t border-white/5 bg-white/[0.02]">
                     {user ? (
-                        <div className="mt-2 pt-2 border-t border-[#222]">
-                            <div className="px-3 py-2 text-xs text-white/40 truncate">
-                                {user.email}
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00f2ff] to-[#7000ff] flex items-center justify-center text-white text-xs font-bold shadow-[0_0_10px_rgba(0,242,255,0.3)]">
+                                    {user.username?.[0]?.toUpperCase() || 'U'}
+                                </div>
+                                <div className="flex flex-col overflow-hidden">
+                                    <span className="text-sm font-medium text-white/80 truncate">
+                                        {user.username}
+                                    </span>
+                                    <span className="text-[10px] text-white/30 truncate">
+                                        {user.email}
+                                    </span>
+                                </div>
                             </div>
                             <button
                                 onClick={logout}
-                                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-red-500/10 text-white/60 hover:text-red-400 transition-all duration-200 text-sm font-light"
+                                className="p-2 text-white/30 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-200"
+                                title="Sign Out"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                                 </svg>
-                                Log out
                             </button>
                         </div>
                     ) : (
-                        <div className="mt-2 pt-2 border-t border-[#222]">
-                            <button
-                                onClick={onLoginClick}
-                                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[#111111] text-white/60 hover:text-white transition-all duration-200 text-sm font-light"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                                Log in / Register
-                            </button>
-                        </div>
+                        <button
+                            onClick={onLoginClick}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm font-medium"
+                        >
+                            Sign In
+                        </button>
                     )}
                 </div>
             </div>

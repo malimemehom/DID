@@ -152,7 +152,7 @@ const RabbitFlow: React.FC<RabbitFlowProps> = ({
         panOnScroll={false}
         zoomOnPinch={true}
         preventScrolling={false}
-        style={{ backgroundColor: '#000000' }}
+        style={{ backgroundColor: 'transparent' }}
       >
         <Controls
           className="!bg-[#111111] !border-gray-800"

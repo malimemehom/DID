@@ -4,8 +4,8 @@ import dagre from 'dagre';
 import RabbitFlow from './RabbitFlow';
 import MainNode from './nodes/MainNode';
 import QuestionNode from './nodes/QuestionNode';
-import CustomBranchInput from './CustomBranchInput';
 import AuthModal from './AuthModal';
+import ChatFrame from './ChatFrame';
 import '../styles/search.css';
 import { searchRabbitHole } from '../services/api';
 import Sidebar from './Sidebar';
@@ -95,9 +95,10 @@ const SearchView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
   const [currentConcept, setCurrentConcept] = useState<string>('');
-  const [customBranchQuestions, setCustomBranchQuestions] = useState<string[]>([]);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [followUpInput, setFollowUpInput] = useState('');
+  const [showLeftChat, setShowLeftChat] = useState(false);
+  const [showRightChat, setShowRightChat] = useState(false);
   const [selectedSourceNodeId, setSelectedSourceNodeId] = useState<string>('');
   const [importToast, setImportToast] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,7 +106,7 @@ const SearchView: React.FC = () => {
   // Sidebar and History
   const [sessions, setSessions] = useState<HistorySession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
@@ -175,14 +176,6 @@ const SearchView: React.FC = () => {
   const edgesRef = useRef<Edge[]>([]);
   const nodesRef = useRef<Node[]>([]);
 
-  const addCustomBranchQuestion = (question: string) => {
-    setCustomBranchQuestions(prev => [...prev, question]);
-  };
-
-  const removeCustomBranchQuestion = (index: number) => {
-    setCustomBranchQuestions(prev => prev.filter((_, i) => i !== index));
-  };
-
   const handleAddCustomFollowUp = () => {
     const question = followUpInput.trim();
     if (!question) return;
@@ -244,8 +237,7 @@ const SearchView: React.FC = () => {
       currentConcept,
       conversationHistory,
       nodes: nodesRef.current,
-      edges: edgesRef.current,
-      branchQuestions: customBranchQuestions
+      edges: edgesRef.current
     };
 
     // Save to backend
@@ -261,7 +253,7 @@ const SearchView: React.FC = () => {
     });
 
     if (!currentSessionId) setCurrentSessionId(sessionId);
-  }, [query, currentConcept, conversationHistory, customBranchQuestions, currentSessionId]);
+  }, [query, currentConcept, conversationHistory, currentSessionId]);
 
   useEffect(() => {
     if (nodes.length > 0) {
@@ -270,14 +262,13 @@ const SearchView: React.FC = () => {
       }, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [nodes, edges, customBranchQuestions, query, currentConcept, conversationHistory, saveCurrentSession]);
+  }, [nodes, edges, query, currentConcept, conversationHistory, saveCurrentSession]);
 
   const handleSelectSession = useCallback((session: HistorySession) => {
     setCurrentSessionId(session.id);
     setQuery(session.query || '');
     setCurrentConcept(session.currentConcept || '');
     setConversationHistory(session.conversationHistory || []);
-    setCustomBranchQuestions(session.branchQuestions || []);
 
     const loadedNodes = session.nodes || [];
     const loadedEdges = session.edges || [];
@@ -308,7 +299,6 @@ const SearchView: React.FC = () => {
     setQuery('');
     setCurrentConcept('');
     setConversationHistory([]);
-    setCustomBranchQuestions([]);
     nodesRef.current = [];
     edgesRef.current = [];
     setNodes([]);
@@ -378,12 +368,6 @@ const SearchView: React.FC = () => {
     reader.onload = (evt) => {
       try {
         const data: RabbitHoleExport = JSON.parse(evt.target?.result as string);
-
-        if (data.type === 'branch-only' && Array.isArray(data.branchQuestions)) {
-          setCustomBranchQuestions(data.branchQuestions);
-          showToast(`✓ 已导入 ${data.branchQuestions.length} 个分支问题`);
-          return;
-        }
 
         if (!Array.isArray(data.nodes) || !Array.isArray(data.edges)) {
           showToast('✗ 无效的 JSON 格式：缺少 nodes 或 edges');
@@ -648,13 +632,8 @@ const SearchView: React.FC = () => {
           isExpanded: true
         }
       };
-      // Merge AI-generated follow-up questions with user's custom branch questions
-      const allFollowUpQuestions = [
-        ...response.followUpQuestions,
-        ...customBranchQuestions.filter(q => !response.followUpQuestions.includes(q))
-      ];
-      const followUpNodes: Node[] = allFollowUpQuestions.map((question: string, index: number) => {
-        const isCustom = index >= response.followUpQuestions.length;
+      // Use AI-generated follow-up questions
+      const followUpNodes: Node[] = response.followUpQuestions.map((question: string, index: number) => {
         return {
           id: `question-${index}`,
           type: 'questionNode',
@@ -664,7 +643,7 @@ const SearchView: React.FC = () => {
             content: '',
             images: [],
             sources: [],
-            isCustom
+            isCustom: false
           },
           position: { x: 0, y: 0 }
         };
@@ -716,7 +695,7 @@ const SearchView: React.FC = () => {
   const renderMainContent = () => {
     if (!searchResult) {
       return (
-        <div className="flex flex-col items-center justify-center w-full h-full overflow-y-auto relative bg-[#0A0A0A]">
+        <div className="flex flex-col items-center justify-center w-full h-full overflow-y-auto relative bg-transparent">
           <a
             href="https://github.com/AsyncFuncAI/rabbitholes"
             target="_blank"
@@ -724,9 +703,9 @@ const SearchView: React.FC = () => {
             className="fixed top-6 right-6 z-50 transform hover:scale-110 transition-transform duration-300 group"
           >
             <div className="relative">
-              <div className="absolute -inset-2 bg-gradient-to-r from-[#2c2c2c] via-[#3c3c3c] to-[#2c2c2c] rounded-full opacity-0 group-hover:opacity-30 transition duration-500 blur-sm animate-gradient-xy"></div>
+              <div className="absolute -inset-2 bg-gradient-to-r from-[#00f2ff] via-[#7000ff] to-[#00f2ff] rounded-full opacity-0 group-hover:opacity-20 transition duration-500 blur-sm animate-gradient-xy"></div>
               <svg
-                className="w-8 h-8 text-white/70 hover:text-white/90 transition-colors duration-300"
+                className="w-8 h-8 text-white/50 hover:text-white/90 transition-colors duration-300"
                 viewBox="0 0 24 24"
                 fill="currentColor"
               >
@@ -734,22 +713,49 @@ const SearchView: React.FC = () => {
               </svg>
             </div>
           </a>
-          <div className="w-full max-w-2xl mx-auto text-center relative">
-            <div className="mb-12 animate-float">
-              <svg className="w-16 h-16 mx-auto animate-pulse-glow" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.8)" strokeWidth="1">
-                <circle cx="12" cy="12" r="10" />
-                <circle cx="12" cy="12" r="6" />
-                <circle cx="12" cy="12" r="2" />
-                <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
-                <path d="M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+          <div className="w-full max-w-2xl mx-auto text-center relative z-10">
+            <div className="mb-12 animate-cyber-pulse">
+              <svg className="w-32 h-32 mx-auto" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Background outer ring */}
+                <circle cx="50" cy="50" r="48" stroke="rgba(0, 242, 255, 0.1)" strokeWidth="0.5" />
+                
+                {/* Rotating outer dash ring */}
+                <circle cx="50" cy="50" r="45" stroke="#00f2ff" strokeWidth="1" strokeLinecap="round" className="cyber-svg-ring opacity-60" />
+                
+                {/* Rotating inner dash ring */}
+                <circle cx="50" cy="50" r="38" stroke="#7000ff" strokeWidth="1" strokeLinecap="round" className="cyber-svg-ring-reverse opacity-40" />
+                
+                {/* Central Hexagon */}
+                <path d="M50 25L71.6506 37.5V62.5L50 75L28.3494 62.5V37.5L50 25Z" fill="rgba(0, 242, 255, 0.05)" stroke="#00f2ff" strokeWidth="2" className="animate-pulse-glow" />
+                
+                {/* Core Circle */}
+                <circle cx="50" cy="50" r="10" fill="#00f2ff" className="animate-pulse opacity-80" />
+                <circle cx="50" cy="50" r="15" stroke="#7000ff" strokeWidth="0.5" className="animate-spin-slow" />
+                
+                {/* Crosshair lines */}
+                <line x1="50" y1="20" x2="50" y2="10" stroke="#00f2ff" strokeWidth="1" />
+                <line x1="50" y1="80" x2="50" y2="90" stroke="#00f2ff" strokeWidth="1" />
+                <line x1="20" y1="50" x2="10" y2="50" stroke="#00f2ff" strokeWidth="1" />
+                <line x1="80" y1="50" x2="90" y2="50" stroke="#00f2ff" strokeWidth="1" />
               </svg>
             </div>
 
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold tracking-[0.3em] uppercase animate-glitch">
+                <span className="neon-text-cyan">LOGIC</span>
+                <span className="text-white/20">:</span>
+                <span className="neon-text-purple">SET</span>
+              </h1>
+              <p className="mt-4 text-white/40 text-xs tracking-[0.2em] font-light uppercase">
+                Compiling_perspectives
+              </p>
+            </div>
+
             <div className="relative w-full max-w-xl mx-auto group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#2c2c2c] via-[#3c3c3c] to-[#2c2c2c] rounded-full opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 animate-gradient-xy blur-sm"></div>
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#00f2ff] via-[#7000ff] to-[#00f2ff] rounded-full opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-gradient-xy blur-md"></div>
               <input
                 type="text"
-                className="w-full px-6 py-4 rounded-full bg-[#111111] text-white/90 border border-white/10 focus:border-white/20 focus:outline-none placeholder-white/30 shadow-lg backdrop-blur-sm font-light tracking-wide"
+                className="w-full px-6 py-4 rounded-full bg-[#0d0d0d]/80 text-white/90 border border-white/10 focus:border-[#00f2ff]/40 focus:outline-none placeholder-white/20 shadow-2xl backdrop-blur-xl font-light tracking-wide transition-all duration-300"
                 value={query}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
                 onKeyPress={(e: React.KeyboardEvent) => e.key === 'Enter' && handleSearch()}
@@ -765,19 +771,12 @@ const SearchView: React.FC = () => {
                   onClick={handleSearch}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-full hover:bg-white/5 transition-colors duration-200"
                 >
-                  <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-[#00f2ff]/60 hover:text-[#00f2ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </button>
               )}
             </div>
-
-            <CustomBranchInput
-              questions={customBranchQuestions}
-              onAdd={addCustomBranchQuestion}
-              onRemove={removeCustomBranchQuestion}
-            />
-
 
           </div>
         </div>
@@ -785,13 +784,39 @@ const SearchView: React.FC = () => {
     }
 
     return (
-      <div className="relative w-full h-full bg-background overflow-hidden">
+      <div className="relative w-full h-full bg-transparent overflow-hidden">
         <RabbitFlow
           initialNodes={nodes}
           initialEdges={edges}
           nodeTypes={nodeTypes}
           onNodeClick={handleNodeClick}
         />
+
+        {/* Floating Chat Toggle Buttons (Visible after search) */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center gap-6">
+          {!showLeftChat && (
+            <button
+              onClick={() => setShowLeftChat(true)}
+              className="px-6 py-2.5 rounded-full cyber-glass neon-border-cyan neon-text-cyan text-sm hover:bg-cyan-500/10 transition-all duration-300 flex items-center gap-2 shadow-[0_0_20px_rgba(0,242,255,0.15)]"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              开启左侧逻辑分析
+            </button>
+          )}
+          {!showRightChat && (
+            <button
+              onClick={() => setShowRightChat(true)}
+              className="px-6 py-2.5 rounded-full cyber-glass neon-border-purple neon-text-purple text-sm hover:bg-purple-500/10 transition-all duration-300 flex items-center gap-2 shadow-[0_0_20px_rgba(112,0,255,0.15)]"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              开启右侧深度推演
+            </button>
+          )}
+        </div>
 
         {/* Modal overlay */}
         {showFollowUpModal && (
@@ -892,7 +917,16 @@ const SearchView: React.FC = () => {
         onClose={() => setIsAuthModalOpen(false)}
       />
 
-      <div className={`flex-1 relative h-full flex flex-col overflow-hidden bg-[#0A0A0A] transition-all duration-300`}>
+      <div className={`flex-1 relative h-full flex flex-col overflow-hidden bg-[#050505] transition-all duration-300`}>
+        {/* Cyberpunk Background Layers */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0 cyber-grid opacity-30" />
+          <div className="absolute inset-0 cyber-grid-dots opacity-20" />
+          <div className="nebula-glow" />
+          <div className="scanline" />
+          <div className="absolute inset-0 cyber-overlay" />
+        </div>
+
         {/* Toggle switch for desktop/mobile when sidebar is closed */}
         {!isSidebarOpen && (
           <button
@@ -916,6 +950,24 @@ const SearchView: React.FC = () => {
         {toastEl}
 
         {renderMainContent()}
+
+        {/* Chat Frames */}
+        {showLeftChat && (
+          <ChatFrame
+            title="左侧 逻辑分析"
+            side="left"
+            topic={query}
+            onClose={() => setShowLeftChat(false)}
+          />
+        )}
+        {showRightChat && (
+          <ChatFrame
+            title="右侧 深度推演"
+            side="right"
+            topic={query}
+            onClose={() => setShowRightChat(false)}
+          />
+        )}
       </div>
     </div>
   );

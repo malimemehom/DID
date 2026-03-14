@@ -19,6 +19,11 @@ export const searchRabbitHole = async (params: {
     return response.data;
 };
 
+export const chatWithAI = async (messages: Array<{ role: string; content: string }>, systemPrompt?: string) => {
+    const response = await api.post('/chat', { messages, systemPrompt });
+    return response.data;
+};
+
 // Global interceptor to catch 401/403 Authorization errors (expired or invalid token)
 api.interceptors.response.use(
     (response) => response,

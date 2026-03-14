@@ -4,9 +4,11 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { setupRabbitHoleRoutes } from './routes/rabbithole';
 import { setupAuthRoutes } from './routes/auth';
+import { setupChatRoutes } from './routes/chat';
 import setupHistoryRoutes from './routes/history';
 import { getDB } from './db/database';
-
+import { setupNewFeatureRoutes } from './routes/newFeature';
+// ...app.use('/api/new-feature', setupNewFeatureRoutes());
 dotenv.config();
 
 const app = express();
@@ -25,6 +27,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api', setupRabbitHoleRoutes(null));
+app.use('/api', setupChatRoutes());
 app.use('/api/auth', setupAuthRoutes());
 app.use('/api/history', setupHistoryRoutes()); // Mounted history routes
 

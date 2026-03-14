@@ -1,0 +1,4 @@
+export const callNewFeature = async (data: any) => {
+    const response = await api.post('/new-feature/do-something', data);
+    return response.data;
+};

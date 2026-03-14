@@ -6,7 +6,7 @@ import './index.css';
 function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[#050505]">
         <SearchView />
       </div>
     </AuthProvider>
