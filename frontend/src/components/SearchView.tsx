@@ -86,7 +86,11 @@ interface SearchResponse {
 
 // ─── JSON Import/Export types are now in history.ts ────────────────────────
 
-const SearchView: React.FC = () => {
+interface SearchViewProps {
+  onGoToDashboard?: () => void;
+}
+
+const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard }) => {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [searchResult, setSearchResult] = useState<SearchResponse | null>(null);
@@ -906,6 +910,7 @@ const SearchView: React.FC = () => {
         onRenameSession={handleRenameSession}
         onImportClick={() => fileInputRef.current?.click()}
         onExportClick={handleExportJSON}
+        onGoToDashboard={onGoToDashboard}
         showExport={!!searchResult}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
