@@ -1,15 +1,24 @@
 import React, { useState } from 'react';
 
-interface DebateDashboardProps {
-  onBack: () => void;
+interface Source {
+  title: string;
+  url: string;
+  uri: string;
+  author: string;
+  image: string;
 }
 
-const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack }) => {
+interface DebateDashboardProps {
+  onBack: () => void;
+  sources: Source[];
+}
+
+const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) => {
   const [activeTab, setActiveTab] = useState<'sources' | 'arguments' | 'summary'>('sources');
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col">
-      
+
       {/* 顶部导航栏 */}
       <div className="flex items-center gap-4 px-6 py-4 border-b border-[#222]">
         <button
@@ -19,6 +28,7 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack }) => {
           ← 返回
         </button>
         <h1 className="text-lg font-semibold text-white">辩论工作台</h1>
+        <span className="text-white/20 text-sm">{sources.length} 条资料</span>
       </div>
 
       {/* 标签切换 */}
@@ -32,10 +42,10 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack }) => {
             key={tab.key}
             onClick={() => setActiveTab(tab.key as typeof activeTab)}
             className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
-              activeTab === tab.key
-                ? 'bg-[#1a1a1a] text-white border border-[#333]'
-                : 'text-white/40 hover:text-white'
-            }`}
+  activeTab === tab.key
+    ? 'bg-[#1a1a1a] text-white border border-[#333]'
+    : 'text-white/40 hover:text-white'
+}`}
           >
             {tab.label}
           </button>
@@ -47,8 +57,39 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack }) => {
 
         {/* 资料索引 */}
         {activeTab === 'sources' && (
-          <div className="text-white/40 text-sm mt-8 text-center">
-            暂无资料，请先在主页搜索一个辩题
+          <div>
+            {sources.length === 0 ? (
+              <div className="text-white/40 text-sm mt-8 text-center">
+                暂无资料，请先在主页搜索一个辩题
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 mt-2">
+                {sources.map((source, index) => (
+                  <a
+                    key={index}
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-3 p-4 rounded-lg bg-[#1a1a1a] border border-[#333] hover:border-white/20 transition-all duration-200 group"
+                  >
+                    <div className="flex-1 overflow-hidden">
+                      <p className="text-sm text-white/80 group-hover:text-white truncate font-medium">
+                        {source.title || '无标题'}
+                      </p>
+                      <p className="text-xs text-white/30 truncate mt-1">
+                        {source.url}
+                      </p>
+                      {source.author && (
+                        <p className="text-xs text-white/20 mt-1">
+                          作者：{source.author}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-white/20 group-hover:text-white/60 text-xs mt-0.5">↗</span>
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

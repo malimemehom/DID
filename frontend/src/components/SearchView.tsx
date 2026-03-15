@@ -88,9 +88,10 @@ interface SearchResponse {
 
 interface SearchViewProps {
   onGoToDashboard?: () => void;
+  onAddSources?: (sources: Source[]) => void;
 }
 
-const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard }) => {
+const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }) => {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [searchResult, setSearchResult] = useState<SearchResponse | null>(null);
@@ -556,6 +557,12 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard }) => {
           setEdges(mergedEdges);
 
           nodesRef.current = finalLayoutedNodes;
+
+          // 收集此分支节点的资料到工作台
+          if (onAddSources && response.sources) {
+            onAddSources(response.sources);
+          }
+
           return finalLayoutedNodes;
         });
       }
@@ -679,8 +686,16 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard }) => {
       nodesRef.current = layoutedNodes;
       edgesRef.current = layoutedEdges;
       setNodes(layoutedNodes);
-      setEdges(layoutedEdges);
-    } catch (error) {
+     setEdges(layoutedEdges);
+
+if (onAddSources && layoutedNodes) {
+  const mainNode = layoutedNodes.find((n: any) => n.type === 'mainNode');
+  if (mainNode?.data?.sources) {
+    onAddSources(mainNode.data.sources);
+  }
+}
+
+} catch (error) {
       console.error('Search failed:', error);
     } finally {
       setIsLoading(false);
