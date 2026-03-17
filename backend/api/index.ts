@@ -8,19 +8,47 @@ dotenv.config();
 
 const app = express();
 
-// 中间件
-app.use(cors({
-    origin: [
-        process.env.FRONTEND_URL || 'https://rabbitholes.vercel.app',
-        'http://localhost:5173',
-        'http://localhost:3000',
-        'http://localhost:8000'
-    ],
+// 动态 CORS 配置 - 允许来自已知域名和所有 Vercel 部署的请求
+const corsOptions = {
+    origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+        // 允许的顶级域名列表
+        const allowedDomains = [
+            'localhost',
+            'vercel.app',
+            'rabbitholes.vercel.app',
+            'did-frontend-sigma.vercel.app',
+            process.env.FRONTEND_URL
+        ];
+
+        // 如果没有 origin（如同源请求），允许
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+
+        // 检查是否在允许列表中
+        const isAllowed = allowedDomains.some(domain => 
+            domain && origin.includes(domain)
+        );
+
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            console.warn(`CORS blocked request from ${origin}`);
+            callback(new Error('CORS policy violation'));
+        }
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    maxAge: 86400 // 24 小时
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
+
+// OPTIONS 预检请求处理（确保对所有路由都有效）
+app.options('*', cors(corsOptions));
 
 // 健康检查
 app.get('/health', (req: Request, res: Response) => {

@@ -1,14 +1,35 @@
 import axios from 'axios';
 
-// 默认 baseURL：在生产环境用相对路径，本地开发用 localhost
-const API_BASE_URL = process.env.REACT_APP_API_URL || 
-    (process.env.NODE_ENV === 'production' ? '/' : 'http://localhost:3001');
+// 获取正确的 API 基础 URL
+const getApiBaseUrl = (): string => {
+    // 在 Vercel 部署环境中，这个变量会自动设置
+    if (process.env.REACT_APP_API_URL) {
+        return process.env.REACT_APP_API_URL;
+    }
+    
+    // Vercel 自动提供的环境变量
+    if (process.env.REACT_APP_API_SERVER) {
+        return process.env.REACT_APP_API_SERVER;
+    }
+    
+    // 生产环境默认使用相对路径（同域）
+    if (process.env.NODE_ENV === 'production') {
+        // 如果前端和后端在不同的 Vercel 项目，需要手动指定后端 URL
+        return 'https://did-backend2.vercel.app';
+    }
+    
+    // 开发环境
+    return 'http://localhost:3001';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true // 确保跨域请求携带凭证
 });
 
 export const searchRabbitHole = async (params: {
