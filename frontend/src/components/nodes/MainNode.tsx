@@ -1,7 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import ReactMarkdown from 'react-markdown';
-import { BounceCards } from '../ui/bounce-cards';
 import '../../styles/flow.css';
 
 interface MainNodeData {
@@ -25,14 +24,6 @@ const getFaviconUrl = (url: string): string => {
     return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIi8+PHBhdGggZD0iTTggMTRzMS41IDIgNCAyIDQtMiA0LTIiLz48bGluZSB4MT0iOSIgeTE9IjkiIHgyPSI5LjAxIiB5Mj0iOSIvPjxsaW5lIHgxPSIxNSIgeTE9IjkiIHgyPSIxNS4wMSIgeTI9IjkiLz48L3N2Zz4='; // fallback icon
   }
 };
-
-const transformStyles = [
-  "rotate(-15deg) translate(-200px, -50px)",
-  "rotate(-5deg) translate(-100px, -25px)",
-  "rotate(0deg)",
-  "rotate(5deg) translate(100px, -25px)",
-  "rotate(15deg) translate(200px, -50px)"
-];
 
 const MainNode = ({ data }: NodeProps<MainNodeData>) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
