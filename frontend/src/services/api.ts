@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+// 默认 baseURL：在生产环境用相对路径，本地开发用 localhost
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+    (process.env.NODE_ENV === 'production' ? '/' : 'http://localhost:3001');
 
 const api = axios.create({
     baseURL: API_BASE_URL,

@@ -27,6 +27,20 @@ app.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 根路由 - API 信息
+app.get('/', (req: Request, res: Response) => {
+    res.json({
+        message: 'RabbitHoles API Server',
+        version: '1.0.0',
+        baseUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3001',
+        endpoints: {
+            health: '/health',
+            search: '/rabbitholes/search',
+            chat: '/chat'
+        }
+    });
+});
+
 // API 路由
 app.use('/rabbithole', setupRabbitHoleRoutes(null));
 
