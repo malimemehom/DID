@@ -19,13 +19,19 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
-// API 路由
-app.use('/api', rabbitHoleRouter);
-
-// 健康检查
-app.get('/api/health', (req: Request, res: Response) => {
+// 健康检查（放在路由前面）
+app.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// API 路由
+app.use('/rabbithole', rabbitHoleRouter);
+
+// 404 处理
+app.use((req: Request, res: Response) => {
+    res.status(404).json({ error: 'Not found' });
+});
+
 // 导出为 Vercel Serverless Function
+// Vercel 会调用这个 app 来处理请求
 export default app;
