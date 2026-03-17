@@ -11,6 +11,7 @@
 - [获取 API Key](#获取-api-key)
 - [本地开发部署](#本地开发部署)
 - [Docker 部署](#docker-部署)
+- [Vercel 部署（推荐）](#vercel-部署推荐)
 - [Railway 一键部署](#railway-一键部署)
 - [环境变量说明](#环境变量说明)
 - [项目结构](#项目结构)
@@ -210,6 +211,297 @@ docker run -d \
 ```
 
 访问 `http://localhost:3000`
+
+---
+
+## Vercel 部署（推荐）
+
+**Vercel 是部署 Next.js、React 和 Node.js 应用的最佳选择**。本教程提供两套方案：
+
+### 方案一：分别部署前后端（推荐 ⭐）
+
+这是最灵活的方案，前端通过 Vercel 静态托管，后端通过 Vercel Functions 运行。
+
+#### 前置要求
+
+- Vercel 账号（[免费注册](https://vercel.com)）
+- GitHub 账号
+- 你的仓库已推送到 GitHub
+
+#### 步骤 1：前端部署
+
+**1.1 连接仓库**
+
+1. 访问 [https://vercel.com/new](https://vercel.com/new)
+2. 使用 GitHub 账号登录或授权
+3. 选择你的 RabbitHoles 仓库
+4. 点击 **Import**
+
+**1.2 配置项目**
+
+在项目导入页面进行以下配置：
+
+| 配置项 | 值 |
+|---|---|
+| Project Name | `rabbitholes` 或自定义 |
+| Framework | **Next.js** → 不选（这是 Create React App） → 选 **Other** |
+| Root Directory | `./frontend` |
+| Build Command | `npm run build` |
+| Output Directory | `build` |
+| Install Command | `npm install` |
+
+> 如果检测有 Root Directory，确保改为 `./frontend`
+
+**1.3 添加环境变量**
+
+在部署前，添加以下环境变量（可选，仅在前端需要时）：
+
+| 变量名 | 值 | 说明 |
+|---|---|---|
+| `REACT_APP_API_URL` | `https://rabbitholes-api.vercel.app` | 后端 API 地址，部署后补充 |
+
+> 这一步可以先跳过，部署后端后再修改。
+
+**1.4 部署**
+
+点击 **Deploy**，等待 5-10 分钟部署完成。完成后 Vercel 会展示你的前端域名，类似：
+
+```
+https://rabbitholes.vercel.app
+```
+
+保存这个域名。
+
+---
+
+#### 步骤 2：后端部署
+
+后端通过 Vercel Functions 部署，完全免费。
+
+**2.1 为后端创建 Vercel 配置文件**
+
+确保 `backend/vercel.json` 已存在（项目中已有），内容如下：
+
+```json
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/index.ts",
+            "use": "@vercel/node"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/(.*)",
+            "dest": "/api/index.ts"
+        }
+    ],
+    "functions": {
+        "api/**/*.ts": {
+            "maxDuration": 60
+        }
+    }
+}
+```
+
+> 文件已存在于 `backend/vercel.json`，无需修改。
+
+**2.2 创建 API 入口文件**
+
+在 `backend/api/` 目录下创建 `index.ts`（如果尚未存在）：
+
+```typescript
+// backend/api/index.ts
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import rabbitHoleRouter from '../src/routes/rabbithole';
+
+dotenv.config();
+
+const app = express();
+
+// 中间件
+app.use(cors({
+    origin: [
+        process.env.FRONTEND_URL || 'https://rabbitholes.vercel.app',
+        'http://localhost:5173',
+        'http://localhost:3000'
+    ],
+    credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+
+// API 路由
+app.use('/api', rabbitHoleRouter);
+
+// 健康检查
+app.get('/api/health', (req: Request, res: Response) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// 导出为 Vercel Serverless Function
+export default app;
+```
+
+**2.3 同步仓库并部署到 Vercel**
+
+推送代码到 GitHub：
+
+```bash
+git add .
+git commit -m "feat: prepare for Vercel deployment"
+git push origin main
+```
+
+然后在 Vercel 中：
+
+1. 访问 [https://vercel.com/new](https://vercel.com/new)
+2. 再次导入相同的仓库
+3. 项目名改为 `rabbitholes-api`
+4. Root Directory 改为 `./backend`
+5. Build Command 改为 `npm run build`
+6. 点击 **Environment Variables** 添加密钥：
+
+   | 变量名 | 值 |
+   |---|---|
+   | `TAVILY_API_KEY` | tvly-你的密钥 |
+   | `GOOGLE_AI_API_KEY` | 你的 Gemini 密钥 |
+   | `FRONTEND_URL` | `https://rabbitholes.vercel.app` |（前端 Vercel 域名） |
+
+7. 点击 **Deploy**，等待 5-10 分钟
+
+部署完成后，后端域名类似：
+
+```
+https://rabbitholes-api.vercel.app
+```
+
+---
+
+#### 步骤 3：联动前后端
+
+**3.1 更新前端环境变量**
+
+回到前端 Vercel 项目：
+
+1. 进入 **Settings** → **Environment Variables**
+2. 编辑或新增：
+   - `REACT_APP_API_URL` = `https://rabbitholes-api.vercel.app`
+
+> 前端默认会请求相对路径 `/api`，需要配置后端地址。
+
+**3.2 重新部署前端**
+
+在前端项目中，触发重新部署以应用新的环境变量：
+
+1. 点击 **Deployments**
+2. 找到最新的部署
+3. 点击三个点 → **Redeploy**
+
+或推送一个空提交触发重新部署：
+
+```bash
+git commit --allow-empty -m "trigger redeploy"
+git push
+```
+
+**3.3 测试连接**
+
+访问 `https://rabbitholes.vercel.app`，在浏览器开发者工具 (F12) 的 Network 面板中，确认 API 请求发送到 `https://rabbitholes-api.vercel.app/api`。
+
+---
+
+### 方案二：使用 Monorepo 整合部署
+
+如果希望前后端在同一个 Vercel 项目中，使用 Monorepo 部署。
+
+#### 配置根目录 vercel.json
+
+在项目根目录创建 `vercel.json`：
+
+```json
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "backend/api/index.ts",
+            "use": "@vercel/node"
+        },
+        {
+            "src": "frontend/package.json",
+            "use": "@vercel/static-build",
+            "config": {
+                "distDir": "build"
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/(.*)",
+            "dest": "backend/api/index.ts"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "frontend/$1"
+        }
+    ],
+    "env": {
+        "TAVILY_API_KEY": "@tavily_api_key",
+        "GOOGLE_AI_API_KEY": "@google_ai_api_key"
+    }
+}
+```
+
+#### 部署步骤
+
+1. 访问 [https://vercel.com/new](https://vercel.com/new)
+2. 导入仓库
+3. Project Name 保留默认
+4. Root Directory **不填**（保持空，使用项目根目录）
+5. Build Command：`npm run build && npm run copy-frontend`
+6. Output Directory：`backend/dist`
+7. 添加环境变量：
+   - `TAVILY_API_KEY`
+   - `GOOGLE_AI_API_KEY`
+8. 点击 **Deploy**
+
+部署后，前端、后端、API 都在同一个域名下：
+
+```
+https://rabbitholes.vercel.app     # 前端
+https://rabbitholes.vercel.app/api # API
+```
+
+---
+
+### Vercel 部署常见问题
+
+**Q: 部署后提示 `Cannot find module`？**
+
+> 确保 `backend/api/` 目录下有 `index.ts` 入口文件，且 `vercel.json` 配置正确。
+
+**Q: Frontend API 请求 404？**
+
+> 检查：
+> 1. 前端环境变量 `REACT_APP_API_URL` 是否正确指向后端域名
+> 2. 后端路由是否挂载在 `/api` 路径
+> 3. CORS 配置是否包含前端域名
+
+**Q: Build timeout？**
+
+> Vercel 免费版本有 45 秒的 build 超时限制。如果构建过慢，可以：
+> - 优化依赖，移除未使用的包
+> - 在 `vercel.json` 中设置 `"buildCommand": "npm ci"` 而不是 `npm install`
+> - 考虑升级到 Pro 版本（有更多构建额度）
+
+**Q: 如何查看部署日志？**
+
+> 在 Vercel 项目中：
+> 1. 点击 **Deployments**
+> 2. 选择对应部署
+> 3. 点击 **Logs** 查看构建和运行日志
 
 ---
 

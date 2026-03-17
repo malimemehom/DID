@@ -25,6 +25,7 @@ interface SearchResponse {
         uri: string;
         author: string;
         image: string;
+        snippet: string;
     }>;
     images: Array<{
         url: string;
@@ -64,11 +65,18 @@ export function setupRabbitHoleRoutes(_runtime: any) {
 
             const tavilyClient = tavily({ apiKey: randomTavilyKey });
 
-            const searchResults = await tavilyClient.search(query, {
-                searchDepth: "basic",
-                includeImages: false,
-                maxResults: 3,
-            });
+            const englishQuery = query + " research study evidence";
+const searchResults = await tavilyClient.search(englishQuery, {
+    searchDepth: "advanced",
+    includeImages: false,
+    maxResults: 10,
+    includeDomains: [
+        "reuters.com", "bbc.com", "theguardian.com", "apnews.com",
+        "economist.com", "ft.com", "nature.com", "science.org",
+        "scholar.google.com", "researchgate.net", "arxiv.org",
+        "un.org", "worldbank.org", "who.int", "imf.org"
+    ]
+});
 
             const conversationContext = previousConversation
                 ? previousConversation
@@ -89,9 +97,13 @@ export function setupRabbitHoleRoutes(_runtime: any) {
 任务流程：
 每当你收到一份资料或观点时，请按以下四个部分进行分析（必须使用 #### 标题）：
 #### 背景与结论
-简要概述资料的核心背景，并提炼出其最终试图论证的结论。
+简要概述资料的核心背景，然后分别从正方立场和反方立场各提炼出一个核心结论，格式如下：
+* 正方结论：...
+* 反方结论：...
 #### 论证与证据
-列出支撑该结论的主要证据或逻辑推导过程。
+分别列出支撑正方和反方结论的主要证据或逻辑推导过程，格式如下：
+* 正方证据：...
+* 反方证据：...
 #### 逻辑漏洞分析
 核心环节：审查资料中是否存在逻辑瑕疵。请重点寻找：
 * 因果错位（如因果倒置）、概念漂移（偷换概念）、以偏概全（样本偏差）、伪二律背反（二选一陷阱）等。
@@ -161,12 +173,13 @@ export function setupRabbitHoleRoutes(_runtime: any) {
             const mainResponse = processedResponse.split(followUpSectionRegex)[0].trim();
 
             const sources = searchResults.results.map((result: any) => ({
-                title: result.title || "",
-                url: result.url || "",
-                uri: result.url || "",
-                author: result.author || "",
-                image: result.image || "",
-            }));
+    title: result.title || "",
+    url: result.url || "",
+    uri: result.url || "",
+    author: result.author || "",
+    image: result.image || "",
+    snippet: (result.content || result.snippet || "").substring(0, 150),
+}));
 
             const images = (searchResults.images || [])
                 .map((result: any) => ({

@@ -6,6 +6,8 @@ interface Source {
   uri: string;
   author: string;
   image: string;
+  snippet?: string;
+  content?: string;
 }
 
 interface DebateDashboardProps {
@@ -16,9 +18,14 @@ interface DebateDashboardProps {
 const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) => {
   const [activeTab, setActiveTab] = useState<'sources' | 'arguments' | 'summary'>('sources');
 
+  const truncateSnippet = (text: string | undefined, maxLength: number = 60): string | null => {
+    if (!text || text.trim() === '') return null;
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col">
-
       {/* 顶部导航栏 */}
       <div className="flex items-center gap-4 px-6 py-4 border-b border-[#222]">
         <button
@@ -42,10 +49,10 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) =>
             key={tab.key}
             onClick={() => setActiveTab(tab.key as typeof activeTab)}
             className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
-  activeTab === tab.key
-    ? 'bg-[#1a1a1a] text-white border border-[#333]'
-    : 'text-white/40 hover:text-white'
-}`}
+              activeTab === tab.key
+                ? 'bg-[#1a1a1a] text-white border border-[#333]'
+                : 'text-white/40 hover:text-white'
+            }`}
           >
             {tab.label}
           </button>
@@ -54,7 +61,6 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) =>
 
       {/* 内容区域 */}
       <div className="flex-1 px-6 py-4">
-
         {/* 资料索引 */}
         {activeTab === 'sources' && (
           <div>
@@ -63,29 +69,29 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) =>
                 暂无资料，请先在主页搜索一个辩题
               </div>
             ) : (
-              <div className="flex flex-col gap-3 mt-2">
+              <div className="flex flex-col gap-2 mt-2">
                 {sources.map((source, index) => (
                   <a
                     key={index}
                     href={source.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-start gap-3 p-4 rounded-lg bg-[#1a1a1a] border border-[#333] hover:border-white/20 transition-all duration-200 group"
+                    className="flex items-start gap-3 p-3 rounded-lg bg-[#1a1a1a] border border-[#333] hover:border-white/20 transition-all duration-200 group/source"
                   >
                     <div className="flex-1 overflow-hidden">
-                      <p className="text-sm text-white/80 group-hover:text-white truncate font-medium">
+                      <p className="text-sm text-white/80 group-hover/source:text-white truncate font-medium">
                         {source.title || '无标题'}
                       </p>
+                      {truncateSnippet(source.snippet || source.content) && (
+                        <p className="text-xs text-white/50 truncate mt-1.5 italic">
+                          {truncateSnippet(source.snippet || source.content)}
+                        </p>
+                      )}
                       <p className="text-xs text-white/30 truncate mt-1">
                         {source.url}
                       </p>
-                      {source.author && (
-                        <p className="text-xs text-white/20 mt-1">
-                          作者：{source.author}
-                        </p>
-                      )}
                     </div>
-                    <span className="text-white/20 group-hover:text-white/60 text-xs mt-0.5">↗</span>
+                    <span className="text-white/20 group-hover/source:text-white/60 text-xs mt-0.5">↗</span>
                   </a>
                 ))}
               </div>
@@ -106,7 +112,6 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) =>
             AI 摘要功能即将上线
           </div>
         )}
-
       </div>
     </div>
   );
