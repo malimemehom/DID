@@ -13,6 +13,7 @@ interface Source {
 interface DebateDashboardProps {
   onBack: () => void;
   sources: Source[];
+  snippet?: string;
 }
 
 const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) => {

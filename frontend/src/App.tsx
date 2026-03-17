@@ -10,6 +10,7 @@ interface Source {
   uri: string;
   author: string;
   image: string;
+  snippet?: string;
 }
 
 function App() {
