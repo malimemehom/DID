@@ -70,7 +70,9 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // API 路由
+// Note: frontend expects /rabbitholes/* (plural), so we mount both.
 app.use('/rabbithole', setupRabbitHoleRoutes(null));
+app.use('/rabbitholes', setupRabbitHoleRoutes(null));
 
 // 404 处理
 app.use((req: Request, res: Response) => {
