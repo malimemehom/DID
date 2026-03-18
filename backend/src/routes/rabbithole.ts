@@ -207,5 +207,76 @@ const searchResults = await tavilyClient.search(englishQuery, {
         }
     });
 
+    // AI 摘要端点
+    router.post("/debate/summary", async (req: Request, res: Response) => {
+        try {
+            const {
+                sources,
+                proArguments,
+                conArguments,
+            } = req.body;
+
+            if (!sources || !Array.isArray(sources)) {
+                return res.status(400).json({
+                    error: "Sources must be provided as an array",
+                });
+            }
+
+            // 汇总资料信息
+            const sourcesContent = sources
+                .map((source: any) => `标题: ${source.title}\n内容摘要: ${source.snippet || ""}`)
+                .join("\n---\n");
+
+            // 格式化正反方论点
+            const proArgumentsText = proArguments
+                ?.map((arg: any) => `• ${arg.content}${arg.note ? `（备注：${arg.note}）` : ""}`)
+                .join("\n") || "暂无";
+
+            const conArgumentsText = conArguments
+                ?.map((arg: any) => `• ${arg.content}${arg.note ? `（备注：${arg.note}）` : ""}`)
+                .join("\n") || "暂无";
+
+            const messages = [
+                {
+                    role: "system",
+                    content: `你是一位专业的辩论提纲生成专家。需要根据提供的资料和用户的论点，生成一份结构化的辩论提纲。
+用 markdown 格式输出，包含以下几个部分：
+1. **辩题总结** - 基于资料和论点总结出辩题的核心内容
+2. **正方核心论点** - 归纳用户提供的正方论点，并基于资料提取关键支撑点
+3. **反方核心论点** - 归纳用户提供的反方论点，并基于资料提取关键支撑点
+4. **关键数据与证据** - 从资料中提取最有说服力的数据和证据`,
+                },
+                {
+                    role: "user",
+                    content: `请根据以下资料和论点生成辩论提纲：
+
+【参考资料】
+${sourcesContent}
+
+【正方论点】
+${proArgumentsText}
+
+【反方论点】
+${conArgumentsText}
+
+请生成一份结构化的辩论提纲。`,
+                },
+            ];
+
+            const completion = (await openAIService.createChatCompletion(messages, "gemini")) as any;
+            const summaryContent = completion.choices?.[0]?.message?.content ?? "";
+
+            res.json({
+                summary: summaryContent,
+            });
+        } catch (error) {
+            console.error("Error in debate summary endpoint:", error);
+            res.status(500).json({
+                error: "Failed to generate debate summary",
+                details: (error as Error).message,
+            });
+        }
+    });
+
     return router;
 }

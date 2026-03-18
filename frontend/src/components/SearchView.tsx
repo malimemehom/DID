@@ -98,6 +98,7 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
   const [currentConcept, setCurrentConcept] = useState<string>('');
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
@@ -603,6 +604,7 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }
     if (!query.trim()) return;
 
     try {
+      setError(null);
       setIsLoading(true);
       const loadingNode: Node = {
         id: 'main',
@@ -625,12 +627,14 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }
       setNodes([loadingNode]);
       setEdges([]);
 
+      console.log('Searching for:', query);
       const response = await searchRabbitHole({
         query,
         previousConversation: conversationHistory,
         concept: currentConcept,
         followUpMode: 'expansive'
       });
+      console.log('Search response:', response);
       setSearchResult(response);
 
       const mainNode: Node = {
@@ -697,6 +701,8 @@ if (onAddSources && layoutedNodes) {
 
 } catch (error) {
       console.error('Search failed:', error);
+      const errorMessage = error instanceof Error ? error.message : '搜索失败，请稍后重试';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -796,6 +802,12 @@ if (onAddSources && layoutedNodes) {
                 </button>
               )}
             </div>
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg max-w-xl mx-auto">
+                <p className="text-red-400 text-sm">⚠️ {error}</p>
+              </div>
+            )}
 
           </div>
         </div>

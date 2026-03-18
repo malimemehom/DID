@@ -12,12 +12,13 @@ import { setupNewFeatureRoutes } from './routes/newFeature';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: ['http://localhost:3000', 'http://localhost:8080', 'http://127.0.0.1:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 app.use(express.json());
 
@@ -26,7 +27,12 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'healthy' });
 });
 
-app.use('/api', setupRabbitHoleRoutes(null));
+const rabbitHoleRoutes = setupRabbitHoleRoutes(null);
+
+// Mount rabbit hole routes both under /api and root to support different frontend base URL configs
+app.use('/api', rabbitHoleRoutes);
+app.use('/', rabbitHoleRoutes);
+
 app.use('/api', setupChatRoutes());
 app.use('/api/auth', setupAuthRoutes());
 app.use('/api/history', setupHistoryRoutes()); // Mounted history routes
