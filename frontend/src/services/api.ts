@@ -85,7 +85,7 @@ export const generateDebateSummary = async (params: {
     proArguments?: Array<{ content: string; note?: string }>;
     conArguments?: Array<{ content: string; note?: string }>;
 }) => {
-    const response = await api.post('/debate/summary', params);
+    const response = await api.post('/rabbitholes/debate/summary', params);
     return response.data;
 };
 

@@ -94,6 +94,7 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) =>
         setSummary(null);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 仅在初始化时运行
 
   // 每当论点或摘要改变时保存到localStorage
@@ -105,7 +106,7 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) =>
         summary
       });
     }
-  }, [proArguments, conArguments, summary]);
+  }, [proArguments, conArguments, summary, sources]);
 
   const truncateSnippet = (text: string | undefined, maxLength: number = 60): string | null => {
     if (!text || text.trim() === '') return null;

@@ -45,7 +45,7 @@ export function setupRabbitHoleRoutes(_runtime: any) {
         console.warn("[WARNING] No Tavily API keys found in environment variables. Searching will fail.");
     }
 
-    router.post("/rabbitholes/search", async (req: Request, res: Response) => {
+    router.post("/search", async (req: Request, res: Response) => {
         try {
             const {
                 query,
