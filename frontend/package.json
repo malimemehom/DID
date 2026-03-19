@@ -20,8 +20,8 @@
     "reactflow": "^11.10.1"
   },
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@babel/plugin-transform-private-property-in-object": "^7.23.4",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.0",
+    "@babel/plugin-transform-private-property-in-object": "^7.21.0",
     "@tailwindcss/typography": "^0.5.10",
     "@types/dagre": "^0.7.54",
     "autoprefixer": "^10.4.17",
