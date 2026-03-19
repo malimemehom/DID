@@ -2,24 +2,28 @@ import axios from 'axios';
 
 // 获取正确的 API 基础 URL（不包含 /api 路径）
 const getApiBaseUrl = (): string => {
-    // 在 Vercel 部署环境中，这个变量会自动设置
+    let url = '';
+    
     if (process.env.REACT_APP_API_URL) {
+        url = process.env.REACT_APP_API_URL;
+    } else if (process.env.REACT_APP_API_SERVER) {
+        url = process.env.REACT_APP_API_SERVER;
+    }
+    
+    if (url) {
         // 移除末尾的 /api 如果存在
-        return process.env.REACT_APP_API_URL.replace(/\/api\s*$/, '');
+        url = url.replace(/\/api\s*$/, '');
+        // 如果没有 http/https 前缀，自动补全（避免 Axios 将其作为相对路径处理）
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+        }
+        return url;
     }
     
-    // Vercel 自动提供的环境变量
-    if (process.env.REACT_APP_API_SERVER) {
-        return process.env.REACT_APP_API_SERVER.replace(/\/api\s*$/, '');
-    }
-    
-    // 生产环境默认使用相对路径（同域）
     if (process.env.NODE_ENV === 'production') {
-        // 如果前端和后端在不同的 Vercel 项目，需要手动指定后端 URL
-        return 'https://did-backend2.vercel.app';
+        return 'https://did-backend.vercel.app';
     }
     
-    // 开发环境
     return 'http://localhost:3001';
 };
 
