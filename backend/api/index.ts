@@ -62,7 +62,7 @@ app.get('/health', (req: Request, res: Response) => {
 app.get('/', (req: Request, res: Response) => {
     res.json({
         message: 'RabbitHoles API Server',
-        version: '1.0.0',
+        version: '1.0.2',
         baseUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3001',
         endpoints: {
             health: '/health',
