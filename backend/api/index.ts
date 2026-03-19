@@ -3,6 +3,9 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { setupRabbitHoleRoutes } from '../src/routes/rabbithole';
+import { setupAuthRoutes } from '../src/routes/auth';
+import { setupChatRoutes } from '../src/routes/chat';
+import setupHistoryRoutes from '../src/routes/history';
 
 dotenv.config();
 
@@ -73,6 +76,16 @@ app.get('/', (req: Request, res: Response) => {
 // Note: frontend expects /rabbitholes/* (plural), so we mount both.
 app.use('/rabbithole', setupRabbitHoleRoutes(null));
 app.use('/rabbitholes', setupRabbitHoleRoutes(null));
+
+// Chat Routes (mount on both /api and root for compatibility)
+app.use('/api', setupChatRoutes());
+app.use('/', setupChatRoutes());
+
+// Auth & History Routes
+app.use('/api/auth', setupAuthRoutes());
+app.use('/auth', setupAuthRoutes());
+app.use('/api/history', setupHistoryRoutes());
+app.use('/history', setupHistoryRoutes());
 
 // 404 处理
 app.use((req: Request, res: Response) => {
