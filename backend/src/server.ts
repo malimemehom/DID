@@ -30,8 +30,8 @@ app.get('/api/health', (req, res) => {
 const rabbitHoleRoutes = setupRabbitHoleRoutes(null);
 
 // Mount rabbit hole routes both under /api and root to support different frontend base URL configs
-app.use('/api', rabbitHoleRoutes);
-app.use('/', rabbitHoleRoutes);
+app.use('/api/rabbitholes', rabbitHoleRoutes);
+app.use('/rabbitholes', rabbitHoleRoutes);
 
 app.use('/api', setupChatRoutes());
 app.use('/api/auth', setupAuthRoutes());

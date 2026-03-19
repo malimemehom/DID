@@ -75,7 +75,7 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) =>
   // 用 useRef 追踪 sources 哈希是否改变
   const sourcesHashRef = React.useRef<string>('');
 
-  // 组件加载时从localStorage恢复数据（仅一次）
+  // 组件记载并响应sources的改变恢复数据
   useEffect(() => {
     const currentHash = getStorageKey(sources);
     
@@ -94,8 +94,7 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) =>
         setSummary(null);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 仅在初始化时运行
+  }, [sources]); // 当sources改变时检查并运行
 
   // 每当论点或摘要改变时保存到localStorage
   useEffect(() => {
