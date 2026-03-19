@@ -19,7 +19,8 @@
     "copy-frontend": "shx cp -r frontend/build backend/dist/frontend"
   },
   "devDependencies": {
-    "concurrently": "^8.0.0"
+    "concurrently": "^8.0.0",
+    "shx": "^0.3.4"
   },
   "dependencies": {
     "@types/dagre": "^0.7.52",
