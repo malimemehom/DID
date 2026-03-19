@@ -11,20 +11,20 @@ const getApiBaseUrl = (): string => {
     }
     
     if (url) {
-        // 移除末尾的 /api 如果存在
+        // 移除末尾的 /api 如果存在，然后统一处理
         url = url.replace(/\/api\s*$/, '');
         // 如果没有 http/https 前缀，自动补全（避免 Axios 将其作为相对路径处理）
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
             url = 'https://' + url;
         }
-        return url;
+        return url + '/api';
     }
     
     if (process.env.NODE_ENV === 'production') {
-        return 'https://did-backend.vercel.app';
+        return 'https://did-backend.vercel.app/api';
     }
     
-    return 'http://localhost:3001';
+    return 'http://localhost:3001/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
