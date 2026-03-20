@@ -54,28 +54,28 @@ app.use(express.json({ limit: '10mb' }));
 app.options('*', cors(corsOptions));
 
 // 健康检查
-app.get('/health', (req: Request, res: Response) => {
+app.get('/api/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // 根路由 - API 信息
-app.get('/', (req: Request, res: Response) => {
+app.get('/api', (req: Request, res: Response) => {
     res.json({
         message: 'RabbitHoles API Server',
         version: '1.0.2',
         baseUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3001',
         endpoints: {
-            health: '/health',
-            search: '/rabbitholes/search',
-            chat: '/chat'
+            health: '/api/health',
+            search: '/api/rabbitholes/search',
+            chat: '/api/chat'
         }
     });
 });
 
 // API 路由
 // Note: frontend expects /rabbitholes/* (plural), so we mount both.
-app.use('/rabbithole', setupRabbitHoleRoutes(null));
-app.use('/rabbitholes', setupRabbitHoleRoutes(null));
+app.use('/api/rabbithole', setupRabbitHoleRoutes(null));
+app.use('/api/rabbitholes', setupRabbitHoleRoutes(null));
 
 // Chat Routes (mount on both /api and root for compatibility)
 app.use('/api', setupChatRoutes());
