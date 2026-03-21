@@ -88,10 +88,10 @@ interface SearchResponse {
 
 interface SearchViewProps {
   onGoToDashboard?: () => void;
-  onAddSources?: (sources: Source[]) => void;
+  onUpdateDebateInfo?: (sources: Source[], sessionId: string | null) => void;
 }
 
-const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }) => {
+const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onUpdateDebateInfo }) => {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [searchResult, setSearchResult] = useState<SearchResponse | null>(null);
@@ -114,6 +114,25 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (onUpdateDebateInfo) {
+      const allSources: Source[] = [];
+      const seen = new Set<string>();
+      nodes.forEach(n => {
+        if (n.type === 'mainNode' && Array.isArray(n.data?.sources)) {
+          n.data.sources.forEach((s: Source) => {
+            if (!seen.has(s.url)) {
+              seen.add(s.url);
+              allSources.push(s);
+            }
+          });
+        }
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      onUpdateDebateInfo(allSources, currentSessionId);
+    }
+  }, [nodes, currentSessionId]);
 
   useEffect(() => {
     getHistorySessions().then(setSessions);
@@ -341,6 +360,24 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }
 
   // ─── JSON Export ────────────────────────────────────────────────────────────
   const handleExportJSON = useCallback(() => {
+    let debateDashboardData = null;
+    if (currentSessionId) {
+      const dataStr = localStorage.getItem(`debateDashboard_${currentSessionId}`);
+      if (dataStr) {
+        try { debateDashboardData = JSON.parse(dataStr); } catch (e) {}
+      }
+    }
+
+    const allSources: Source[] = [];
+    const seen = new Set<string>();
+    nodesRef.current.forEach(n => {
+      if (n.type === 'mainNode' && Array.isArray(n.data?.sources)) {
+        n.data.sources.forEach((s: Source) => {
+          if (!seen.has(s.url)) { seen.add(s.url); allSources.push(s); }
+        });
+      }
+    });
+
     const payload: RabbitHoleExport = {
       version: '1.0',
       query,
@@ -348,6 +385,8 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }
       conversationHistory,
       nodes: nodesRef.current,
       edges: edgesRef.current,
+      debateDashboardData,
+      collectedSources: allSources,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -357,7 +396,7 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }
     a.download = `rabbitholes_${safeName}_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [query, currentConcept, conversationHistory]);
+  }, [query, currentConcept, conversationHistory, currentSessionId]);
 
   // ─── JSON Import ─────────────────────────────────────────────────────────────
   const showToast = useCallback((msg: string) => {
@@ -397,6 +436,13 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }
           images: [],
           contextualQuery: data.query || '',
         } as SearchResponse);
+
+        const importedSessionId = crypto.randomUUID();
+        setCurrentSessionId(importedSessionId);
+        
+        if (data.debateDashboardData) {
+          localStorage.setItem(`debateDashboard_${importedSessionId}`, JSON.stringify(data.debateDashboardData));
+        }
 
         showToast(`✓ 导入成功：${layoutedNodes.length} 个节点`);
       } catch {
@@ -559,11 +605,6 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }
 
           nodesRef.current = finalLayoutedNodes;
 
-          // 收集此分支节点的资料到工作台
-          if (onAddSources && response.sources) {
-            onAddSources(response.sources);
-          }
-
           return finalLayoutedNodes;
         });
       }
@@ -691,13 +732,6 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onAddSources }
       edgesRef.current = layoutedEdges;
       setNodes(layoutedNodes);
      setEdges(layoutedEdges);
-
-if (onAddSources && layoutedNodes) {
-  const mainNode = layoutedNodes.find((n: any) => n.type === 'mainNode');
-  if (mainNode?.data?.sources) {
-    onAddSources(mainNode.data.sources);
-  }
-}
 
 } catch (error) {
       console.error('Search failed:', error);

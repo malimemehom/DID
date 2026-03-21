@@ -16,13 +16,11 @@ interface Source {
 function App() {
   const [currentPage, setCurrentPage] = useState('search');
   const [collectedSources, setCollectedSources] = useState<Source[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
-  const handleAddSources = (newSources: Source[]) => {
-    setCollectedSources(prev => {
-      const existingUrls = new Set(prev.map(s => s.url));
-      const filtered = newSources.filter(s => !existingUrls.has(s.url));
-      return [...prev, ...filtered];
-    });
+  const handleUpdateDebateInfo = (sources: Source[], sessionId: string | null) => {
+    setCollectedSources(sources);
+    setCurrentSessionId(sessionId);
   };
 
   return (
@@ -33,7 +31,7 @@ function App() {
         <div style={{ display: currentPage === 'search' ? 'block' : 'none' }}>
           <SearchView
             onGoToDashboard={() => setCurrentPage('dashboard')}
-            onAddSources={handleAddSources}
+            onUpdateDebateInfo={handleUpdateDebateInfo}
           />
         </div>
 
@@ -42,6 +40,7 @@ function App() {
           <DebateDashboard
             onBack={() => setCurrentPage('search')}
             sources={collectedSources}
+            sessionId={currentSessionId}
           />
         )}
 

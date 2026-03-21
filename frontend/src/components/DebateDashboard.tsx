@@ -27,28 +27,27 @@ interface DebateDashboardProps {
   onBack: () => void;
   sources: Source[];
   snippet?: string;
+  sessionId: string | null;
 }
 
 const STORAGE_KEY_PREFIX = 'debateDashboard_';
 
-const getStorageKey = (sources: Source[]): string => {
-  // 使用sources数组生成唯一的存储key
-  const sourcesHash = sources.map(s => s.url).join('|');
-  return `${STORAGE_KEY_PREFIX}${sourcesHash}`;
+const getStorageKey = (sessionId: string | null): string => {
+  return sessionId ? `${STORAGE_KEY_PREFIX}${sessionId}` : `${STORAGE_KEY_PREFIX}temp`;
 };
 
-const saveDebateData = (sources: Source[], data: DebateDashboardData) => {
+const saveDebateData = (sessionId: string | null, data: DebateDashboardData) => {
   try {
-    const key = getStorageKey(sources);
+    const key = getStorageKey(sessionId);
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
     console.error('Failed to save debate data:', error);
   }
 };
 
-const loadDebateData = (sources: Source[]): DebateDashboardData | null => {
+const loadDebateData = (sessionId: string | null): DebateDashboardData | null => {
   try {
-    const key = getStorageKey(sources);
+    const key = getStorageKey(sessionId);
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : null;
   } catch (error) {
@@ -57,7 +56,7 @@ const loadDebateData = (sources: Source[]): DebateDashboardData | null => {
   }
 };
 
-const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) => {
+const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sessionId }) => {
   const [activeTab, setActiveTab] = useState<'sources' | 'arguments' | 'summary'>('sources');
   
   // 论点整理相关状态
@@ -72,40 +71,38 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources }) =>
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  // 用 useRef 追踪 sources 哈希是否改变
-  const sourcesHashRef = React.useRef<string>('');
+  const sessionIdRef = React.useRef<string | null>('__uninitialized__');
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // 组件记载并响应sources的改变恢复数据
+  // 监听 sessionId 的改变恢复数据
   useEffect(() => {
-    const currentHash = getStorageKey(sources);
-    
-    // 如果 sources 发生真实改变（URL数组不同）
-    if (sourcesHashRef.current !== currentHash) {
-      sourcesHashRef.current = currentHash;
-      const savedData = loadDebateData(sources);
+    if (sessionIdRef.current !== sessionId) {
+      setIsLoaded(false);
+      sessionIdRef.current = sessionId;
+      const savedData = loadDebateData(sessionId);
       if (savedData) {
-        setProArguments(savedData.proArguments);
-        setConArguments(savedData.conArguments);
-        setSummary(savedData.summary);
+        setProArguments(savedData.proArguments || []);
+        setConArguments(savedData.conArguments || []);
+        setSummary(savedData.summary || null);
       } else {
-        // 新的sources，清空旧数据
         setProArguments([]);
         setConArguments([]);
         setSummary(null);
       }
+      setIsLoaded(true);
     }
-  }, [sources]); // 当sources改变时检查并运行
+  }, [sessionId]);
 
   // 每当论点或摘要改变时保存到localStorage
   useEffect(() => {
-    if (sources.length > 0) {
-      saveDebateData(sources, {
+    if (isLoaded) {
+      saveDebateData(sessionId, {
         proArguments,
         conArguments,
         summary
       });
     }
-  }, [proArguments, conArguments, summary, sources]);
+  }, [proArguments, conArguments, summary, sessionId, isLoaded]);
 
   const truncateSnippet = (text: string | undefined, maxLength: number = 60): string | null => {
     if (!text || text.trim() === '') return null;

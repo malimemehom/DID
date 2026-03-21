@@ -14,11 +14,35 @@ interface ChatFrameProps {
 }
 
 const ChatFrame: React.FC<ChatFrameProps> = ({ title, side, topic, onClose }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const storageKey = `chatframe_${side}_${topic}`;
+
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${storageKey}_messages`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [userStance, setUserStance] = useState<'affirmative' | 'negative' | null>(null);
+  const [userStance, setUserStance] = useState<'affirmative' | 'negative' | null>(() => {
+    try {
+      const saved = localStorage.getItem(`${storageKey}_stance`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(`${storageKey}_messages`, JSON.stringify(messages));
+  }, [messages, storageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(`${storageKey}_stance`, JSON.stringify(userStance));
+  }, [userStance, storageKey]);
 
   const aiStance = userStance === 'affirmative' ? 'negative' : 'affirmative';
   const stanceText = aiStance === 'affirmative' ? '正方' : '反方';

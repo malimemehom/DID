@@ -15,6 +15,8 @@ export interface RabbitHoleExport {
     nodes?: Node[];
     edges?: Edge[];
     branchQuestions?: string[];
+    debateDashboardData?: any;
+    collectedSources?: any[];
 }
 
 export interface HistorySession extends RabbitHoleExport {
