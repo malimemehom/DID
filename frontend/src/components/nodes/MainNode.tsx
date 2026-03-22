@@ -113,16 +113,20 @@ const MainNode = ({ data }: NodeProps<MainNodeData>) => {
                     .split(/(?=####\s)/)
                     .filter((text: string) => text.trim() !== '')
                     .map((text: string, idx: number) => {
-                      if (text.trim().startsWith('####')) {
+                      const trimmedText = text.trim();
+                      if (trimmedText.startsWith('####')) {
                         // 如果是以 #### 开头的纸条，就把它拆成名字和内容，装进鼻屎小盒子里
-                        const lines = text.trim().split('\n');
+                        const lines = trimmedText.split('\n');
                         const title = lines[0].replace(/####\s*/, '').trim();
                         const content = lines.slice(1).join('\n').trim();
                         // 防止后端生成空的 #### 或者无标题内容产生多余的按键
                         if (!title && !content) return null;
-                        return <CollapsibleSection key={`collab-${idx}`} title={title} content={content} />;
+                        return <CollapsibleSection key={`collab-${idx}`} title={title} content={content} sources={data.sources} />;
                       }
-                      return null;
+
+                      // 如果是长文且没有 #### 标题，我们使用 "概述" 作为标题呈现，防止内容整体丢失
+                      if (!trimmedText) return null;
+                      return <CollapsibleSection key={`collab-${idx}`} title="概述" content={trimmedText} sources={data.sources} />;
                     })}
 
                 </div>
@@ -180,9 +184,37 @@ const MainNode = ({ data }: NodeProps<MainNodeData>) => {
 };
 
 // 这是一个普通的 React 组件，放在 MainNode.tsx 里面
-const CollapsibleSection = ({ title, content }: { title: string, content: string }) => {
+const CollapsibleSection = ({ title, content, sources }: { title: string, content: string, sources?: MainNodeData['sources'] }) => {
   // 默认收起 (false) 还是展开 (true)，看你自己的需求，这里写默认收起
   const [isOpen, setIsOpen] = React.useState(false);
+
+  // 处理来源链接：将 （来源：xxx） 转换为 Markdown 链接格式，打上特殊标记 "source-link" 或 "source-nolink"
+  const processedContent = React.useMemo(() => {
+    if (!content) return '';
+    return content.replace(/[\(（]\s*来源\s*[:：]\s*([^）\)]+?)\s*[\)）]/g, (match, sourcesText) => {
+      // 把多个来源拆开（用、或,分隔）
+      const sourceNames = sourcesText.split(/[、,，]/).map((s: string) =>
+        s.trim().replace(/[\[\]【】]/g, '')
+      );
+
+      const buttons = sourceNames.map((cleanName: string) => {
+        if (!cleanName) return '';
+        // 模糊匹配：只要有20个字符重叠就算匹配
+        const source = sources?.find((s: any) => {
+          const title = s.title || '';
+          return title.includes(cleanName.substring(0, 15)) ||
+            cleanName.includes(title.substring(0, 15));
+        });
+        if (source?.url) {
+          const safeUrl = encodeURI(source.url).replace(/\(/g, '%28').replace(/\)/g, '%29');
+          return `[📎 ${ cleanName }](${ safeUrl } "source-link")`;
+        }
+        return `[📎 ${ cleanName }](#nolink "source-nolink")`;
+      }).filter(Boolean).join(' ');
+
+      return buttons || match;
+    });
+  }, [content, sources]);
 
   return (
     <>
@@ -229,7 +261,37 @@ const CollapsibleSection = ({ title, content }: { title: string, content: string
             {/* 📄 你的全部内容（支持鼠标滚轮滚动） */}
             <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
               <div className="prose prose-invert prose-lg max-w-none">
-                <ReactMarkdown>{content}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    a: ({ node, ...props }) => {
+                      // 渲染找到链接的来源按钮
+                      if (props.title === "source-link") {
+                        return (
+                          <a href={props.href} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 mx-1 rounded text-xs bg-blue-500/20 text-blue-300 hover:bg-blue-500/40 border border-blue-500/30 transition-all cursor-pointer no-underline">
+                            {props.children}
+                          </a>
+                        );
+                      }
+                      // 渲染未找到链接的来源样式
+                      if (props.title === "source-nolink") {
+                        return (
+                          <span className="text-blue-300/60 text-xs mx-1">
+                            {props.children}
+                          </span>
+                        );
+                      }
+                      // 渲染普通的 Markdown 链接
+                      return (
+                        <a href={props.href} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                          {props.children}
+                        </a>
+                      );
+                    }
+                  }}
+                >
+                  {processedContent}
+                </ReactMarkdown>
               </div>
             </div>
 

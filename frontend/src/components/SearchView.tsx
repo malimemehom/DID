@@ -12,15 +12,15 @@ import Sidebar from './Sidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { getHistorySessions, saveHistorySession, deleteHistorySession, renameHistorySession, HistorySession, RabbitHoleExport, ConversationMessage } from '../services/history';
 
-const dagreGraph = new dagre.graphlib.Graph();
-dagreGraph.setDefaultEdgeLabel(() => ({}));
-
 const nodeWidth = 600;
 const nodeHeight = 500;
 const questionNodeWidth = 300;
 const questionNodeHeight = 100;
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
   dagreGraph.setGraph({
     rankdir: 'LR',
     nodesep: 800,
@@ -30,13 +30,10 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     ranker: 'tight-tree'
   });
 
-  const allNodes = dagreGraph.nodes();
-  allNodes.forEach((node: string) => dagreGraph.removeNode(node));
-
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, {
-      width: node.id === 'main' ? nodeWidth : questionNodeWidth,
-      height: node.id === 'main' ? nodeHeight : questionNodeHeight
+      width: node.type === 'mainNode' ? nodeWidth : questionNodeWidth,
+      height: node.type === 'mainNode' ? nodeHeight : questionNodeHeight
     });
   });
 
@@ -48,11 +45,12 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 
   const newNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
+    if (!nodeWithPosition) return node;
     return {
       ...node,
       position: {
-        x: nodeWithPosition.x - (node.id === 'main' ? nodeWidth / 2 : questionNodeWidth / 2),
-        y: nodeWithPosition.y - (node.id === 'main' ? nodeHeight / 2 : questionNodeHeight / 2)
+        x: nodeWithPosition.x - (node.type === 'mainNode' ? nodeWidth / 2 : questionNodeWidth / 2),
+        y: nodeWithPosition.y - (node.type === 'mainNode' ? nodeHeight / 2 : questionNodeHeight / 2)
       },
       targetPosition: Position.Left,
       sourcePosition: Position.Right
@@ -129,10 +127,9 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onUpdateDebate
           });
         }
       });
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       onUpdateDebateInfo(allSources, currentSessionId);
     }
-  }, [nodes, currentSessionId]);
+  }, [nodes, currentSessionId, onUpdateDebateInfo]);
 
   useEffect(() => {
     getHistorySessions().then(setSessions);
@@ -206,8 +203,9 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onUpdateDebate
     if (!question) return;
 
     // Find the last expanded main node to connect to
+    const expandedMainNodes = nodesRef.current.filter(n => n.type === 'mainNode' && n.data.isExpanded);
     const sourceId = selectedSourceNodeId || (
-      nodesRef.current.filter(n => n.type === 'mainNode' && n.data.isExpanded).at(-1)?.id
+      expandedMainNodes[expandedMainNodes.length - 1]?.id
       ?? nodesRef.current[0]?.id
       ?? 'main'
     );
@@ -552,26 +550,16 @@ const SearchView: React.FC<SearchViewProps> = ({ onGoToDashboard, onUpdateDebate
             const uniqueId = `question-${node.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`;
             return {
               id: uniqueId,
-              type: 'default',
+              type: 'questionNode',
               data: {
                 label: question,
                 isExpanded: false,
                 content: '',
                 images: [],
-                sources: []
+                sources: [],
+                isCustom: false
               },
-              position: { x: 0, y: 0 },
-              style: {
-                width: questionNodeWidth,
-                background: '#1a1a1a',
-                color: '#fff',
-                border: '1px solid #333',
-                borderRadius: '8px',
-                fontSize: '14px',
-                textAlign: 'left',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                cursor: 'pointer'
-              }
+              position: { x: 0, y: 0 }
             };
           });
 

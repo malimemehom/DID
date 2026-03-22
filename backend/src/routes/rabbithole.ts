@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { tavily } from "@tavily/core";
 import { openAIService } from "../services/openaiService";
 import OpenAI from "openai";
+import fetch from "node-fetch";
 
 interface RabbitHoleSearchRequest {
     query: string;
@@ -66,17 +67,113 @@ export function setupRabbitHoleRoutes(_runtime: any) {
             const tavilyClient = tavily({ apiKey: randomTavilyKey });
 
             const englishQuery = query + " research study evidence";
-const searchResults = await tavilyClient.search(englishQuery, {
-    searchDepth: "advanced",
-    includeImages: false,
-    maxResults: 10,
-    includeDomains: [
-        "reuters.com", "bbc.com", "theguardian.com", "apnews.com",
-        "economist.com", "ft.com", "nature.com", "science.org",
-        "scholar.google.com", "researchgate.net", "arxiv.org",
-        "un.org", "worldbank.org", "who.int", "imf.org"
-    ]
-});
+            // 第一步：用 DeepSeek 把中文题目翻译成英文
+            const translationMessages = [
+                {
+                    role: "system",
+                    content: "Translate the following Chinese debate topic to English. Output ONLY the English translation. Do not explain, do not answer, do not add anything. Just translate."
+                },
+                {
+                    role: "user",
+                    content: `Translate to English: ${query}`
+                }
+            ];
+
+            const translationResult = await openAIService.createChatCompletion(translationMessages, "gemini") as any;
+            const englishTranslation = translationResult.choices?.[0]?.message?.content?.trim() || query;
+
+            console.log(`[SEARCH] Original: "${query}" | Translated: "${englishTranslation}"`);
+
+            // 第二步：同时用中文和英文搜索
+            const [chineseResults, englishResults] = await Promise.all([
+                tavilyClient.search(query, {
+                    searchDepth: "advanced",
+                    includeImages: false,
+                    maxResults: 5,
+                    includeDomains: [
+                        "reuters.com", "bbc.com", "theguardian.com", "apnews.com",
+                        "economist.com", "ft.com", "nature.com", "science.org",
+                        "researchgate.net", "arxiv.org",
+                        "un.org", "worldbank.org", "who.int", "imf.org"
+                    ]
+                }),
+                tavilyClient.search(englishTranslation + " research study evidence", {
+                    searchDepth: "advanced",
+                    includeImages: false,
+                    maxResults: 5,
+                    includeDomains: [
+                        "reuters.com", "bbc.com", "theguardian.com", "apnews.com",
+                        "economist.com", "ft.com", "nature.com", "science.org",
+                        "researchgate.net", "arxiv.org",
+                        "un.org", "worldbank.org", "who.int", "imf.org"
+                    ]
+                })
+            ]);
+
+            // 第三步：合并结果并去重
+            const allResults = [
+                ...(chineseResults.results || []),
+                ...(englishResults.results || [])
+            ];
+
+            const seenUrls = new Set<string>();
+            const uniqueResults = allResults.filter(result => {
+                if (seenUrls.has(result.url)) return false;
+                seenUrls.add(result.url);
+                return true;
+
+            });
+
+            // 第四步：从 OpenAlex 搜索学术论文
+            try {
+                console.log('[OPENALEX] Starting search for:', englishTranslation);
+                const openAlexResponse = await fetch(
+                    `https://api.openalex.org/works?search=${encodeURIComponent(englishTranslation)}&per-page=5&select=title,doi,abstract_inverted_index,authorships,publication_year,primary_location`
+                );
+                console.log('[OPENALEX] Response status:', openAlexResponse.status);
+                // 这里加了 as any 断言，避免后续警告 unknown
+                const openAlexData = (await openAlexResponse.json()) as any;
+
+                if (openAlexData.results && openAlexData.results.length > 0) {
+                    const academicResults = openAlexData.results
+                        .filter((paper: any) => paper.title)
+                        .map((paper: any) => {
+                            const url = paper.doi
+                                ? `https://doi.org/${paper.doi}`
+                                : paper.primary_location?.landing_page_url || '';
+
+                            // 把倒排索引转换成可读文字
+                            let abstract = '';
+                            if (paper.abstract_inverted_index) {
+                                const wordPositions: { [key: number]: string } = {};
+                                Object.entries(paper.abstract_inverted_index).forEach(([word, positions]: [string, any]) => {
+                                    positions.forEach((pos: number) => {
+                                        wordPositions[pos] = word;
+                                    });
+                                });
+                                abstract = Object.keys(wordPositions)
+                                    .sort((a, b) => Number(a) - Number(b))
+                                    .map(pos => wordPositions[Number(pos)])
+                                    .join(' ');
+                            }
+
+                            return {
+                                title: `[学术] ${paper.title} (${paper.publication_year || 'N/A'})`,
+                                url: url,
+                                content: abstract,
+                                snippet: abstract.substring(0, 150),
+                            };
+                        })
+                        .filter((paper: any) => paper.url);
+
+                    uniqueResults.push(...academicResults);
+                    console.log(`[OPENALEX] Found ${academicResults.length} academic papers`);
+                }
+            } catch (err) {
+                console.warn('[OPENALEX] Search failed:', err);
+            }
+
+            const searchResults = { results: uniqueResults };
 
             const conversationContext = previousConversation
                 ? previousConversation
@@ -97,17 +194,45 @@ const searchResults = await tavilyClient.search(englishQuery, {
 任务流程：
 每当你收到一份资料或观点时，请按以下四个部分进行分析（必须使用 #### 标题）：
 #### 背景与结论
-简要概述资料的核心背景，然后分别从正方立场和反方立场各提炼出一个核心结论，格式如下：
-* 正方结论：...
-* 反方结论：...
+简要概述资料的核心背景，然后分别从正方立场和反方立场各提炼出一个核心结论，每句话后加来源标注。格式：
+* 正方结论：...（来源：[资料名]）
+* 反方结论：...（来源：[资料名] 或 AI分析：基于以上资料推断）
+
 #### 论证与证据
-分别列出支撑正方和反方结论的主要证据或逻辑推导过程，格式如下：
-* 正方证据：...
-* 反方证据：...
+分别列出支撑正方和反方结论的主要证据，每条证据必须标注来源。格式：
+* 正方证据：...（来源：[资料名]）
+* 反方证据：...（来源：[资料名]）
+
 #### 逻辑漏洞分析
-核心环节：审查资料中是否存在逻辑瑕疵。请重点寻找：
-* 因果错位（如因果倒置）、概念漂移（偷换概念）、以偏概全（样本偏差）、伪二律背反（二选一陷阱）等。
-* 指出漏洞具体出现在哪一步。
+核心环节：审查资料中是否存在逻辑瑕疵。请重点寻找以下所有类型：
+
+因果类错误：
+* 因果错位（因果倒置）：A导致B被错误表述为B导致A
+* 虚假因果（相关≠因果）：两件事同时发生但无直接因果关系
+* 滑坡谬误：假设A必然导致一系列极端后果
+
+概念类错误：
+* 概念漂移（偷换概念）：同一词在不同语境中含义被悄悄替换
+* 定义过窄/过宽：对核心概念的定义刻意缩小或扩大范围
+* 循环论证：用结论来证明前提
+
+样本类错误：
+* 以偏概全（样本偏差）：用少数案例代表全体
+* 幸存者偏差：只看到成功案例，忽略失败案例
+* 樱桃采摘（cherry picking）：只选择支持自身立场的数据
+
+逻辑结构错误：
+* 伪二律背反（二选一陷阱）：把多种可能性强行简化为非此即彼
+* 稻草人谬误：歪曲对方观点再进行攻击
+* 诉诸权威：仅凭权威人士说过就当作真理
+* 诉诸情感：用情绪渲染代替逻辑论证
+* 人身攻击：攻击论述者而非论述本身
+
+对每个发现的漏洞，按以下格式标注：
+* 漏洞类型：[具体类型名称]
+* 具体表现：...（出现在：[资料名]，具体在其[哪个论点/数据]中）
+* AI分析：...（AI分析：基于逻辑推断，非资料直接内容）
+
 #### 生活化例子
 感性映射：设计一个极具画面感的日常生活场景，将上述抽象逻辑类比为评委一眼就能看懂的常识，从而形成共识。
 
@@ -125,6 +250,9 @@ const searchResults = await tavilyClient.search(englishQuery, {
                         }.`,
                 },
             ];
+            console.log('[DEBUG] Search results count:', searchResults.results.length);
+            console.log('[DEBUG] First result sample:', JSON.stringify(searchResults.results[0]).substring(0, 300));
+
 
             const completion = (await openAIService.createChatCompletion(messages, "gemini")) as any;
             const response = completion.choices?.[0]?.message?.content ?? "";
@@ -173,15 +301,15 @@ const searchResults = await tavilyClient.search(englishQuery, {
             const mainResponse = processedResponse.split(followUpSectionRegex)[0].trim();
 
             const sources = searchResults.results.map((result: any) => ({
-    title: result.title || "",
-    url: result.url || "",
-    uri: result.url || "",
-    author: result.author || "",
-    image: result.image || "",
-    snippet: (result.content || result.snippet || "").substring(0, 150),
-}));
+                title: result.title || "",
+                url: result.url || "",
+                uri: result.url || "",
+                author: result.author || "",
+                image: result.image || "",
+                snippet: (result.content || result.snippet || "").substring(0, 150),
+            }));
 
-            const images = (searchResults.images || [])
+            const images = ((searchResults as any).images || [])
                 .map((result: any) => ({
                     url: result.url,
                     thumbnail: result.url,

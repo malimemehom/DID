@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import SearchView from './components/SearchView';
 import DebateDashboard from './components/DebateDashboard';
 import { AuthProvider } from './contexts/AuthContext';
@@ -18,10 +18,10 @@ function App() {
   const [collectedSources, setCollectedSources] = useState<Source[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
-  const handleUpdateDebateInfo = (sources: Source[], sessionId: string | null) => {
+  const handleUpdateDebateInfo = useCallback((sources: Source[], sessionId: string | null) => {
     setCollectedSources(sources);
     setCurrentSessionId(sessionId);
-  };
+  }, []);
 
   return (
     <AuthProvider>
