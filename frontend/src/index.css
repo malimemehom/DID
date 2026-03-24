@@ -2,33 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  background:
-    radial-gradient(circle at top left, rgba(125, 173, 255, 0.14), transparent 32%),
-    radial-gradient(circle at top right, rgba(165, 236, 255, 0.1), transparent 28%),
-    linear-gradient(180deg, #edf3fb 0%, #e3ebf6 42%, #dae4f0 100%);
-}
-
-body,
-#root {
-  min-height: 100vh;
-}
-
 body {
-  @apply text-slate-900;
-  margin: 0;
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(125, 173, 255, 0.14), transparent 32%),
-    radial-gradient(circle at top right, rgba(165, 236, 255, 0.1), transparent 28%),
-    linear-gradient(180deg, #edf3fb 0%, #e3ebf6 42%, #dae4f0 100%);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-::selection {
-  background: rgba(122, 162, 255, 0.28);
-  color: #0f172a;
-}
+  @apply bg-background text-white;
+} 
