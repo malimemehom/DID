@@ -1,11 +1,13 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, NodeProps, Position } from 'reactflow';
 import ReactMarkdown from 'react-markdown';
 import '../../styles/flow.css';
 
 interface MainNodeData {
   label: string;
   content: string;
+  theme?: 'light' | 'dark';
+  followUpQuestions?: string[];
   images?: string[];
   sources?: Array<{
     title: string;
@@ -21,25 +23,61 @@ const getFaviconUrl = (url: string): string => {
     const domain = new URL(url).hostname;
     return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
   } catch {
-    return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIi8+PHBhdGggZD0iTTggMTRzMS41IDIgNCAyIDQtMiA0LTIiLz48bGluZSB4MT0iOSIgeTE9IjkiIHgyPSI5LjAxIiB5Mj0iOSIvPjxsaW5lIHgxPSIxNSIgeTE9IjkiIHgyPSIxNS4wMSIgeTI9IjkiLz48L3N2Zz4='; // fallback icon
+    return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIi8+PHBhdGggZD0iTTggMTRzMS41IDIgNCAyIDQtMiA0LTIiLz48bGluZSB4MT0iOSIgeTE9IjkiIHgyPSI5LjAxIiB5Mj0iOSIvPjxsaW5lIHgxPSIxNSIgeTE9IjkiIHgyPSIxNS4wMSIgeTI9IjkiLz48L3N2Zz4=';
   }
+};
+
+const normalizeSections = (content: string) => {
+  return content
+    .split(/(?=####\s)/)
+    .map((text) => text.trim())
+    .filter(Boolean)
+    .map((section, index) => {
+      if (section.startsWith('####')) {
+        const lines = section.split('\n');
+        return {
+          id: `section-${index}`,
+          title: lines[0].replace(/####\s*/, '').trim() || '延伸信息',
+          content: lines.slice(1).join('\n').trim(),
+        };
+      }
+
+      return {
+        id: `section-${index}`,
+        title: index === 0 ? '背景与结论' : `延伸信息 ${index + 1}`,
+        content: section,
+      };
+    });
 };
 
 const MainNode = ({ data }: NodeProps<MainNodeData>) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const sections = React.useMemo(() => normalizeSections(data.content || ''), [data.content]);
+  const isDark = data.theme === 'dark';
 
   return (
-    <div className={`relative bg-[#1a1a1a] rounded-2xl border border-black shadow-lg flex flex-col group transition-all duration-300 ${isExpanded ? 'h-fit max-h-[550px]' : 'min-h-fit'}`}>
-      <Handle type="target" position={Position.Left} className="w-2 h-2" />
+    <div
+      className={`relative rounded-[32px] border flex flex-col group transition-all duration-300 ${
+        isExpanded ? 'h-fit max-h-[560px]' : 'min-h-fit'
+      } ${
+        isDark
+          ? 'bg-[linear-gradient(180deg,rgba(17,24,39,0.96),rgba(30,41,59,0.94))] border-slate-700/80 text-slate-100 shadow-[0_28px_80px_rgba(2,6,23,0.4)]'
+          : 'soft-panel-strong border-white/80 text-slate-800 shadow-[0_28px_80px_rgba(148,163,184,0.22)]'
+      }`}
+    >
+      <Handle type="target" position={Position.Left} className="w-2 h-2 !bg-sky-300 !border-0" />
 
-      {/* Delete Button */}
       {data.onDeleteNode && (
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            data.onDeleteNode!();
+          onClick={(event) => {
+            event.stopPropagation();
+            data.onDeleteNode?.();
           }}
-          className="absolute top-4 right-4 z-50 p-2 rounded-lg bg-black/40 text-white/40 hover:text-red-400 hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200"
+          className={`nodrag nopan absolute top-4 right-4 z-50 p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200 ${
+            isDark
+              ? 'bg-slate-900/80 text-slate-400 hover:text-rose-300 hover:bg-slate-900'
+              : 'bg-white/75 text-slate-400 hover:text-rose-500 hover:bg-white'
+          }`}
           title="Delete Node"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,253 +86,199 @@ const MainNode = ({ data }: NodeProps<MainNodeData>) => {
         </button>
       )}
 
-
-
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#1a1a1a] flex flex-col items-start justify-start">
-
+      <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full text-left p-4 text-white hover:bg-white/10 transition-colors font-bold flex justify-start items-center gap-3 z-10 sticky top-0 bg-[#1a1a1a] border-none"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          className={`nodrag nopan w-full text-left px-6 py-5 transition-colors font-semibold flex items-center gap-3 z-10 sticky top-0 border-none backdrop-blur-xl rounded-t-[32px] ${
+            isDark
+              ? 'text-stone-100 hover:bg-slate-800/60 bg-[rgba(15,23,42,0.72)]'
+              : 'text-slate-800 hover:bg-white/35 bg-[rgba(255,255,255,0.72)]'
+          }`}
         >
-          <span className="text-2xl">
-            {(() => {
-              if (data.content === 'Loading...') return data.label || '概述内容';
-              // 抽出正文最前面（第一个 #### 之前）的内容当作标题
-              const parts = data.content.split(/(?=####\s)/);
-              if (parts.length > 0 && !parts[0].trim().startsWith('####')) {
-                const plainText = parts[0].replace(/[\s\n*#\->]/g, '').trim();
-                // 如果这段不仅包含符号，就有字，就作为最上方标题展示
-                if (plainText) {
-                  return parts[0].trim();
-                }
-              }
-              return data.label || '概述内容';
-            })()}
-          </span>
-          <span className="text-white/50 text-xl">{isExpanded ? '▼' : '▶'}</span>
+          <span className="text-[22px] leading-8">{data.label || 'Knowledge Card'}</span>
+          <span className={`text-xl ${isDark ? 'text-amber-300' : 'text-slate-400'}`}>{isExpanded ? '▼' : '▶'}</span>
         </button>
 
-        {/* 下面是原本的内容区域 */}
         {isExpanded && (
           <div className={`w-full flex-1 flex flex-col ${data.content === 'Loading...' ? 'items-center justify-center' : 'items-start justify-start'}`}>
             {data.content === 'Loading...' ? (
-              <div className="flex flex-col items-center justify-center space-y-8 p-6">
-                <div className="relative">
-                  <svg className="w-24 h-24 animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.15)" strokeWidth="1.5">
-                    <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="12" r="6" />
-                    <circle cx="12" cy="12" r="2" />
-                  </svg>
-                  <svg className="w-24 h-24 absolute top-0 left-0 animate-reverse-spin" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="1.5">
-                    <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
-                    <path d="M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white/80 rounded-full animate-pulse"></div>
-                  </div>
+              <div className="flex flex-col items-center justify-center space-y-6 p-8">
+                <div className="relative h-24 w-24">
+                  <div className="absolute inset-0 rounded-full border border-sky-200 soft-pulse" />
+                  <div className="absolute inset-4 rounded-full border border-cyan-300/80 soft-drift" />
+                  <div className="absolute inset-[34px] rounded-full bg-gradient-to-br from-sky-400 to-cyan-300" />
                 </div>
-
-                <div className="space-y-3 text-center">
-                  <div className="font-mystical text-lg text-white/70 tracking-[0.2em] animate-pulse">
-                    SEEKING WISDOM
-                  </div>
-                  <div className="text-sm text-white/40 tracking-wider">
-                    Traversing the depths of knowledge...
-                  </div>
+                <div className="space-y-2 text-center">
+                  <div className="text-lg font-semibold tracking-[0.16em] text-sky-700">PROCESSING</div>
+                  <div className="text-sm text-slate-500 tracking-wide">Organizing signals and building context...</div>
                 </div>
               </div>
             ) : (
-              <div className="flex-1 px-8 py-2 overflow-y-auto w-full">
-
-
-                <div className="grid grid-rows-2 grid-flow-col justify-start gap-x-24 gap-y-2 prose prose-invert prose-sm max-w-none break-words">
-
-                  {data.content
-                    .split(/(?=####\s)/)
-                    .filter((text: string) => text.trim() !== '')
-                    .map((text: string, idx: number) => {
-                      const trimmedText = text.trim();
-                      if (trimmedText.startsWith('####')) {
-                        // 如果是以 #### 开头的纸条，就把它拆成名字和内容，装进鼻屎小盒子里
-                        const lines = trimmedText.split('\n');
-                        const title = lines[0].replace(/####\s*/, '').trim();
-                        const content = lines.slice(1).join('\n').trim();
-                        // 防止后端生成空的 #### 或者无标题内容产生多余的按键
-                        if (!title && !content) return null;
-                        return <CollapsibleSection key={`collab-${idx}`} title={title} content={content} sources={data.sources} />;
-                      }
-
-                      // 如果是长文且没有 #### 标题，我们使用 "概述" 作为标题呈现，防止内容整体丢失
-                      if (!trimmedText) return null;
-                      return <CollapsibleSection key={`collab-${idx}`} title="概述" content={trimmedText} sources={data.sources} />;
-                    })}
-
+              <div className="flex-1 px-8 py-2 overflow-y-auto w-full custom-scrollbar space-y-4">
+                <div className="grid grid-cols-1 gap-4 max-w-none break-words">
+                  {sections.map((section) => (
+                    <CollapsibleSection
+                      key={section.id}
+                      title={section.title}
+                      content={section.content}
+                      sources={data.sources}
+                      theme={data.theme}
+                    />
+                  ))}
                 </div>
-                {data.sources && data.sources.length > 0 && (
-                  <SimpleCollapsible title="Sources">
-                    {data.sources.map((source, index) => (
-                      <a
-                        key={index}
-                        href={source.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-800 transition-colors group break-all"
-                      >
-                        <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-800 rounded overflow-hidden">
-                          <img
-                            src={getFaviconUrl(source.url)}
-                            alt=""
-                            className="w-4 h-4 group-hover:scale-110 transition-transform"
-                            onError={(e) => {
-                              const img = e.target as HTMLImageElement;
-                              img.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                        <span className="text-sm text-gray-300 group-hover:text-white flex-1 break-words">
-                          {source.title}
-                        </span>
-                      </a>
-                    ))}
-                  </SimpleCollapsible>
-                )}
 
+                {data.sources && data.sources.length > 0 && (
+                  <SourcePanel sources={data.sources} theme={data.theme} />
+                )}
               </div>
             )}
-            {/* Ask Follow Up button */}
+
             {data.onAskFollowUp && data.content !== 'Loading...' && (
-              <div className="flex-none border-t border-white/5 px-6 py-3 w-full">
+              <div className={`flex-none border-t px-6 py-3 w-full ${isDark ? 'border-slate-700/70' : 'border-slate-200/70'}`}>
                 <button
-                  onClick={(e) => { e.stopPropagation(); data.onAskFollowUp!(); }}
-                  className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/80 transition-colors duration-200 group"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    data.onAskFollowUp?.();
+                  }}
+                  className={`nodrag nopan flex items-center gap-2 text-xs font-medium transition-colors duration-200 ${isDark ? 'text-slate-400 hover:text-amber-300' : 'text-slate-500 hover:text-slate-800'}`}
                 >
-                  <svg className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4v16m8-8H4" />
                   </svg>
-                  Ask Follow Up
+                  添加追问
                 </button>
               </div>
             )}
           </div>
         )}
       </div>
-      <Handle type="source" position={Position.Right} className="w-2 h-2" />
+
+      <Handle type="source" position={Position.Right} className="w-2 h-2 !bg-sky-300 !border-0" />
     </div>
   );
 };
 
-// 这是一个普通的 React 组件，放在 MainNode.tsx 里面
-const CollapsibleSection = ({ title, content, sources }: { title: string, content: string, sources?: MainNodeData['sources'] }) => {
-  // 默认收起 (false) 还是展开 (true)，看你自己的需求，这里写默认收起
+const CollapsibleSection = ({
+  title,
+  content,
+  sources,
+  theme,
+}: {
+  title: string;
+  content: string;
+  sources?: MainNodeData['sources'];
+  theme?: MainNodeData['theme'];
+}) => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const isDark = theme === 'dark';
 
-  // 处理来源链接：将 （来源：xxx） 转换为 Markdown 链接格式，打上特殊标记 "source-link" 或 "source-nolink"
   const processedContent = React.useMemo(() => {
     if (!content) return '';
-    return content.replace(/[\(（]\s*来源\s*[:：]\s*([^）\)]+?)\s*[\)）]/g, (match, sourcesText) => {
-      // 把多个来源拆开（用、或,分隔）
-      const sourceNames = sourcesText.split(/[、,，]/).map((s: string) =>
-        s.trim().replace(/[\[\]【】]/g, '')
-      );
 
-      const buttons = sourceNames.map((cleanName: string) => {
-        if (!cleanName) return '';
-        // 模糊匹配：只要有20个字符重叠就算匹配
-        const source = sources?.find((s: any) => {
-          const title = s.title || '';
-          return title.includes(cleanName.substring(0, 15)) ||
-            cleanName.includes(title.substring(0, 15));
-        });
-        if (source?.url) {
-          const safeUrl = encodeURI(source.url).replace(/\(/g, '%28').replace(/\)/g, '%29');
-          return `[📎 ${ cleanName }](${ safeUrl } "source-link")`;
-        }
-        return `[📎 ${ cleanName }](#nolink "source-nolink")`;
-      }).filter(Boolean).join(' ');
+    return content.replace(/[(（]\s*[^:：]*[:：]\s*([^)）]+?)\s*[)）]/g, (_match, sourceText) => {
+      const sourceNames = sourceText.split(/[、,，]/).map((name: string) => name.trim().replace(/[[\]【】]/g, ''));
+      const links = sourceNames
+        .map((cleanName: string) => {
+          if (!cleanName) return '';
 
-      return buttons || match;
+          const source = sources?.find((item) => {
+            const titleText = item.title || '';
+            return titleText.includes(cleanName.substring(0, 15)) || cleanName.includes(titleText.substring(0, 15));
+          });
+
+          if (source?.url) {
+            const safeUrl = encodeURI(source.url).replace(/\(/g, '%28').replace(/\)/g, '%29');
+            return `[来源：${cleanName}](${safeUrl} "source-link")`;
+          }
+
+          return `[来源：${cleanName}](#nolink "source-nolink")`;
+        })
+        .filter(Boolean)
+        .join(' ');
+
+      return links || sourceText;
     });
   }, [content, sources]);
 
   return (
     <>
-      {/* 📦 这是平时看到的小盒子：彻底去掉了背景块和边框，也不要任何 p-4 海绵垫了，就让它们紧贴着 */}
-      <div className="mb-2">
-
-        {/* ✨ 用一个 flex 袋子，让标题和按钮在同一行并排站好，中间隔开一点点距离（gap-3） */}
+      <div className={`rounded-[24px] border px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${isDark ? 'border-slate-700/70 bg-slate-900/45' : 'border-white/70 bg-white/45'}`}>
         <div className="flex items-center gap-3">
-
-          {/* H1 标题大字，改成了和最上面一样的大小（text-base 或者 text-lg） */}
-          <h1 className="text-base font-bold text-white">{title}</h1>
-
-          {/* 🔍 蓝色的三角形打开按键 */}
+          <h3 className={`text-base font-semibold ${isDark ? 'text-stone-100' : 'text-slate-800'}`}>{title}</h3>
           <button
-            onClick={() => setIsOpen(true)}
-            className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors bg-transparent border-none outline-none flex items-center justify-center cursor-pointer"
-            title="点击展开内容"
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsOpen(true);
+            }}
+            className={`nodrag nopan text-[12px] transition-colors bg-transparent border-none outline-none flex items-center justify-center cursor-pointer ${isDark ? 'text-amber-300 hover:text-amber-200' : 'text-sky-600 hover:text-sky-500'}`}
+            title="Expand section"
           >
             ▶
           </button>
-
         </div>
       </div>
 
-
-
-      {/* ⛺ 只有开关打开时，才弹出全屏大帐篷 */}
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          {/* 大帐篷里的主角：一个在屏幕中央的大卡片 */}
-          <div className="relative w-[90vw] h-[90vh] bg-[#1a1a1a] border border-white/20 rounded-xl shadow-2xl flex flex-col">
-
-            {/* ❌ 顶部的打叉按钮区 */}
-            <div className="flex justify-between items-center p-4 border-b border-white/10">
-              <h2 className="text-2xl font-bold text-white">{title}</h2>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/35 backdrop-blur-md">
+          <div className={`relative w-[90vw] h-[90vh] rounded-[32px] shadow-2xl flex flex-col border ${isDark ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(30,41,59,0.96))] border-slate-700/80' : 'soft-panel-strong border-white/85'}`}>
+            <div className={`flex justify-between items-center p-5 border-b ${isDark ? 'border-slate-700/80' : 'border-slate-200/70'}`}>
+              <h2 className={`text-2xl font-semibold ${isDark ? 'text-stone-100' : 'text-slate-900'}`}>{title}</h2>
               <button
-                onClick={() => setIsOpen(false)}
-                className="text-white/50 hover:text-red-500 text-3xl font-bold p-2"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIsOpen(false);
+                }}
+                className={`nodrag nopan ${isDark ? 'text-slate-400 hover:text-rose-300' : 'text-slate-400 hover:text-rose-500'} text-3xl font-bold p-2`}
               >
                 ×
               </button>
             </div>
 
-            {/* 📄 你的全部内容（支持鼠标滚轮滚动） */}
             <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
-              <div className="prose prose-invert prose-lg max-w-none">
+              <div className={`prose prose-lg max-w-none ${isDark ? 'prose-invert' : 'prose-slate'}`}>
                 <ReactMarkdown
                   components={{
-                    a: ({ node, ...props }) => {
-                      // 渲染找到链接的来源按钮
-                      if (props.title === "source-link") {
+                    a: ({ ...props }) => {
+                      if (props.title === 'source-link') {
                         return (
-                          <a href={props.href} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2 py-0.5 mx-1 rounded text-xs bg-blue-500/20 text-blue-300 hover:bg-blue-500/40 border border-blue-500/30 transition-all cursor-pointer no-underline">
+                          <a
+                            href={props.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(event) => event.stopPropagation()}
+                            className={`nodrag nopan inline-flex items-center gap-1 px-2 py-0.5 mx-1 rounded-full text-xs transition-all cursor-pointer no-underline ${
+                              isDark
+                                ? 'bg-amber-400/15 text-amber-200 hover:bg-amber-400/25 border border-amber-300/25'
+                                : 'bg-sky-100 text-sky-700 hover:bg-sky-200 border border-sky-200'
+                            }`}
+                          >
                             {props.children}
                           </a>
                         );
                       }
-                      // 渲染未找到链接的来源样式
-                      if (props.title === "source-nolink") {
-                        return (
-                          <span className="text-blue-300/60 text-xs mx-1">
-                            {props.children}
-                          </span>
-                        );
+
+                      if (props.title === 'source-nolink') {
+                        return <span className={`${isDark ? 'text-amber-200/70' : 'text-sky-500/70'} text-xs mx-1`}>{props.children}</span>;
                       }
-                      // 渲染普通的 Markdown 链接
+
                       return (
-                        <a href={props.href} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                        <a
+                          href={props.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                          className={`nodrag nopan ${isDark ? 'text-amber-200' : 'text-sky-600'} hover:underline`}
+                        >
                           {props.children}
                         </a>
                       );
-                    }
+                    },
                   }}
                 >
                   {processedContent}
                 </ReactMarkdown>
               </div>
             </div>
-
           </div>
         </div>
       )}
@@ -302,31 +286,79 @@ const CollapsibleSection = ({ title, content, sources }: { title: string, conten
   );
 };
 
-// 这是一个普通的 React 组件，放在 MainNode.tsx 里面，用作原地折叠
-const SimpleCollapsible = ({ title, children }: { title: string, children: React.ReactNode }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
+const SourcePanel = ({
+  sources,
+  theme,
+}: {
+  sources: NonNullable<MainNodeData['sources']>;
+  theme?: MainNodeData['theme'];
+}) => {
+  const [isOpen, setIsOpen] = React.useState(true);
+  const isDark = theme === 'dark';
+  const validSources = React.useMemo(
+    () =>
+      sources.filter((source, index, array) => {
+        if (!source?.url || !source?.title) return false;
+        return array.findIndex((item) => item.url === source.url) === index;
+      }),
+    [sources]
+  );
 
   return (
-    <div className={`mt-6 border-t border-gray-700 pt-4 ${isOpen ? 'mb-4' : ''}`}>
-      {/* 标题和展开按钮 */}
-      <div
-        className={`flex items-center gap-2 cursor-pointer group ${isOpen ? 'mb-3' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+    <div className={`nodrag nopan rounded-[24px] border px-5 py-4 ${isDark ? 'border-slate-700/70 bg-slate-900/45' : 'border-white/70 bg-white/45'}`}>
+      <button
+        onClick={(event) => {
+          event.stopPropagation();
+          setIsOpen((prev) => !prev);
+        }}
+        className="nodrag nopan w-full flex items-center justify-between text-left"
       >
-        <span className={`text-[12px] text-gray-400 group-hover:text-gray-300 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}>
-          ▶
-        </span>
-        <h3 className="text-sm font-semibold text-gray-400 group-hover:text-gray-300">{title}</h3>
-      </div>
+        <div>
+          <div className={`text-sm font-semibold ${isDark ? 'text-stone-100' : 'text-slate-800'}`}>资料来源</div>
+          <div className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{validSources.length} 条可查看资料</div>
+        </div>
+        <span className={`text-sm ${isDark ? 'text-amber-300' : 'text-sky-600'}`}>{isOpen ? '收起' : '展开'}</span>
+      </button>
 
-      {/* 折叠的内容区域 */}
       {isOpen && (
-        <div className="grid grid-cols-1 gap-3">
-          {children}
+        <div className="grid grid-cols-1 gap-3 mt-4">
+          {validSources.map((source, index) => (
+            <a
+              key={`${source.url}-${index}`}
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(event) => event.stopPropagation()}
+              className={`nodrag nopan flex items-center gap-3 p-3 rounded-2xl transition-colors ${
+                isDark ? 'bg-slate-950/45 hover:bg-slate-900/80 border border-slate-700/60' : 'bg-white/70 hover:bg-white border border-white/80'
+              }`}
+            >
+              <div className={`flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                <img
+                  src={getFaviconUrl(source.url)}
+                  alt=""
+                  className="w-4 h-4"
+                  onError={(event) => {
+                    const img = event.target as HTMLImageElement;
+                    img.style.display = 'none';
+                  }}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className={`text-sm font-medium truncate ${isDark ? 'text-stone-100' : 'text-slate-800'}`}>{source.title}</div>
+                <div className={`text-xs truncate mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{source.url}</div>
+              </div>
+            </a>
+          ))}
+          {validSources.length === 0 && (
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${isDark ? 'border-slate-700/60 bg-slate-950/35 text-slate-400' : 'border-white/80 bg-white/70 text-slate-500'}`}>
+              暂无可用资料链接
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 };
 
-export default memo(MainNode); 
+export default memo(MainNode);

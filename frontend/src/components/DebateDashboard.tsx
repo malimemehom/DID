@@ -28,6 +28,8 @@ interface DebateDashboardProps {
   sources: Source[];
   snippet?: string;
   sessionId: string | null;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
 }
 
 const STORAGE_KEY_PREFIX = 'debateDashboard_';
@@ -38,8 +40,7 @@ const getStorageKey = (sessionId: string | null): string => {
 
 const saveDebateData = (sessionId: string | null, data: DebateDashboardData) => {
   try {
-    const key = getStorageKey(sessionId);
-    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(getStorageKey(sessionId), JSON.stringify(data));
   } catch (error) {
     console.error('Failed to save debate data:', error);
   }
@@ -47,8 +48,7 @@ const saveDebateData = (sessionId: string | null, data: DebateDashboardData) => 
 
 const loadDebateData = (sessionId: string | null): DebateDashboardData | null => {
   try {
-    const key = getStorageKey(sessionId);
-    const data = localStorage.getItem(key);
+    const data = localStorage.getItem(getStorageKey(sessionId));
     return data ? JSON.parse(data) : null;
   } catch (error) {
     console.error('Failed to load debate data:', error);
@@ -56,17 +56,14 @@ const loadDebateData = (sessionId: string | null): DebateDashboardData | null =>
   }
 };
 
-const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sessionId }) => {
+const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sessionId, theme, onToggleTheme }) => {
+  const isDark = theme === 'dark';
   const [activeTab, setActiveTab] = useState<'sources' | 'arguments' | 'summary'>('sources');
-  
-  // 论点整理相关状态
   const [proArguments, setProArguments] = useState<Argument[]>([]);
   const [conArguments, setConArguments] = useState<Argument[]>([]);
   const [proInputValue, setProInputValue] = useState('');
   const [conInputValue, setConInputValue] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-
-  // AI 摘要相关状态
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -74,7 +71,6 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sess
   const sessionIdRef = React.useRef<string | null>('__uninitialized__');
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 监听 sessionId 的改变恢复数据
   useEffect(() => {
     if (sessionIdRef.current !== sessionId) {
       setIsLoaded(false);
@@ -93,24 +89,12 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sess
     }
   }, [sessionId]);
 
-  // 每当论点或摘要改变时保存到localStorage
   useEffect(() => {
     if (isLoaded) {
-      saveDebateData(sessionId, {
-        proArguments,
-        conArguments,
-        summary
-      });
+      saveDebateData(sessionId, { proArguments, conArguments, summary });
     }
   }, [proArguments, conArguments, summary, sessionId, isLoaded]);
 
-  const truncateSnippet = (text: string | undefined, maxLength: number = 60): string | null => {
-    if (!text || text.trim() === '') return null;
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
-
-  // 论点整理相关函数
   const addArgument = (side: 'pro' | 'con', content: string) => {
     if (!content.trim()) return;
     const newArgument: Argument = {
@@ -118,6 +102,7 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sess
       content: content.trim(),
       note: '',
     };
+
     if (side === 'pro') {
       setProArguments([...proArguments, newArgument]);
       setProInputValue('');
@@ -143,7 +128,6 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sess
     }
   };
 
-  // AI 摘要相关函数
   const generateSummary = async () => {
     if (sources.length === 0) {
       setSummaryError('请先搜索至少一条资料');
@@ -172,35 +156,53 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sess
     }
   };
 
-  // 论点行组件
+  const shellClass = isDark
+    ? 'bg-[linear-gradient(180deg,#0b1120_0%,#111827_54%,#0f172a_100%)] text-slate-100'
+    : 'bg-[linear-gradient(180deg,#ece5d8_0%,#d8e1ea_58%,#f6f1e8_100%)] text-slate-900';
+  const panelClass = isDark
+    ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(30,41,59,0.92))] border border-slate-700/80 shadow-[0_28px_80px_rgba(2,6,23,0.35)]'
+    : 'bg-[linear-gradient(180deg,rgba(245,238,226,0.94),rgba(214,224,234,0.92))] border border-white/80 shadow-[0_28px_80px_rgba(71,85,105,0.18)]';
+  const subPanelClass = isDark
+    ? 'bg-slate-900/65 border border-slate-700/70'
+    : 'bg-white/65 border border-white/80';
+  const inputClass = isDark
+    ? 'bg-slate-950/70 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:border-amber-400'
+    : 'bg-white/85 border-white/90 text-slate-800 placeholder:text-slate-400 focus:border-amber-300';
+
+  const tabs = [
+    { key: 'sources', label: '资料视图' },
+    { key: 'arguments', label: '论点整理' },
+    { key: 'summary', label: 'AI 摘要' },
+  ] as const;
+
   const ArgumentItem: React.FC<{ argument: Argument; side: 'pro' | 'con' }> = ({ argument, side }) => (
-    <div className="p-3 bg-[#1a1a1a] rounded-lg border border-[#333] hover:border-[#444] transition-all">
+    <div className={`rounded-[24px] p-4 ${subPanelClass}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <p className="text-sm text-white/80">{argument.content}</p>
+          <p className={`text-sm leading-6 ${isDark ? 'text-slate-100' : 'text-slate-700'}`}>{argument.content}</p>
           {argument.note && (
-            <div className="mt-2 p-2 bg-[#0a0a0a] rounded border border-[#222] text-xs text-white/60">
-              📝 {argument.note}
+            <div className={`mt-3 rounded-2xl p-3 text-xs leading-5 ${isDark ? 'bg-slate-950/70 text-slate-300 border border-slate-800' : 'bg-slate-50 text-slate-600 border border-slate-200'}`}>
+              备注：{argument.note}
             </div>
           )}
         </div>
         <button
           onClick={() => deleteArgument(side, argument.id)}
-          className="text-white/40 hover:text-red-400 transition-colors flex-shrink-0 text-sm"
+          className={`text-sm transition-colors ${isDark ? 'text-slate-500 hover:text-rose-300' : 'text-slate-400 hover:text-rose-500'}`}
           title="删除论点"
         >
           ✕
         </button>
       </div>
-      
+
       {editingNoteId === argument.id ? (
-        <div className="mt-2 flex gap-2">
+        <div className="mt-3">
           <input
             type="text"
             value={argument.note || ''}
             onChange={(e) => updateArgumentNote(side, argument.id, e.target.value)}
             placeholder="输入备注..."
-            className="flex-1 px-2 py-1 bg-[#0a0a0a] border border-[#333] rounded text-xs text-white placeholder-white/20 focus:outline-none focus:border-white/40"
+            className={`w-full rounded-2xl border px-3 py-2 text-xs focus:outline-none ${inputClass}`}
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -213,7 +215,7 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sess
       ) : (
         <button
           onClick={() => setEditingNoteId(argument.id)}
-          className="mt-2 text-xs text-white/40 hover:text-white/60 transition-colors"
+          className={`mt-3 text-xs transition-colors ${isDark ? 'text-amber-300 hover:text-amber-200' : 'text-amber-700 hover:text-amber-800'}`}
         >
           {argument.note ? '编辑备注' : '添加备注'}
         </button>
@@ -222,73 +224,76 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sess
   );
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col">
-      {/* 顶部导航栏 */}
-      <div className="flex items-center gap-4 px-6 py-4 border-b border-[#222]">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm"
-        >
-          ← 返回
-        </button>
-        <h1 className="text-lg font-semibold text-white">辩论工作台</h1>
-        <span className="text-white/20 text-sm">{sources.length} 条资料</span>
-      </div>
+    <div className={`min-h-screen flex flex-col ${shellClass}`}>
+      <div className={`mx-5 mt-5 rounded-[30px] px-6 py-5 ${panelClass}`}>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onBack}
+              className={`rounded-full px-4 py-2 text-sm transition-colors ${isDark ? 'bg-slate-900/70 text-slate-300 hover:text-white' : 'bg-white/70 text-slate-600 hover:text-slate-900'}`}
+            >
+              返回探索页
+            </button>
+            <div>
+              <h1 className={`text-xl font-semibold ${isDark ? 'text-stone-100' : 'text-slate-900'}`}>辩论工作台</h1>
+              <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{sources.length} 条资料已进入工作台</p>
+            </div>
+          </div>
 
-      {/* 标签切换 */}
-      <div className="flex gap-1 px-6 pt-4">
-        {[
-          { key: 'sources', label: '📚 资料索引' },
-          { key: 'arguments', label: '📝 论点整理' },
-          { key: 'summary', label: '🤖 AI 摘要' },
-        ].map(tab => (
           <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as typeof activeTab)}
-            className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
-              activeTab === tab.key
-                ? 'bg-[#1a1a1a] text-white border border-[#333]'
-                : 'text-white/40 hover:text-white'
-            }`}
+            onClick={onToggleTheme}
+            className={`rounded-full px-4 py-2 text-xs font-semibold tracking-[0.2em] uppercase ${isDark ? 'bg-slate-900/70 text-amber-300 border border-slate-700' : 'bg-white/70 text-amber-700 border border-white/80'}`}
           >
-            {tab.label}
+            {isDark ? '日间模式' : '夜间模式'}
           </button>
-        ))}
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`rounded-full px-4 py-2 text-sm transition-all ${
+                activeTab === tab.key
+                  ? isDark
+                    ? 'bg-amber-400/15 border border-amber-400/30 text-amber-200'
+                    : 'bg-amber-50 border border-amber-200 text-amber-700'
+                  : isDark
+                    ? 'bg-slate-900/50 border border-slate-700 text-slate-400 hover:text-slate-100'
+                    : 'bg-white/60 border border-white/80 text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* 内容区域 */}
-      <div className="flex-1 px-6 py-4 overflow-y-auto">
-        {/* 资料索引 */}
+      <div className="flex-1 px-5 pb-6 pt-5 overflow-y-auto">
         {activeTab === 'sources' && (
-          <div>
+          <div className={`max-w-6xl mx-auto rounded-[30px] p-6 ${panelClass}`}>
             {sources.length === 0 ? (
-              <div className="text-white/40 text-sm mt-8 text-center">
-                暂无资料，请先在主页搜索一个辩题
+              <div className={`text-center py-20 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                暂无资料，请先回到主页面发起搜索。
               </div>
             ) : (
-              <div className="flex flex-col gap-2 mt-2 max-w-4xl">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {sources.map((source, index) => (
                   <a
                     key={index}
                     href={source.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-start gap-3 p-3 rounded-lg bg-[#1a1a1a] border border-[#333] hover:border-white/20 transition-all duration-200 group/source"
+                    className={`rounded-[24px] p-5 transition-all duration-200 ${subPanelClass} ${isDark ? 'hover:border-amber-400/35' : 'hover:border-amber-200'}`}
                   >
-                    <div className="flex-1 overflow-hidden">
-                      <p className="text-sm text-white/80 group-hover/source:text-white truncate font-medium">
-                        {source.title || '无标题'}
-                      </p>
-                      {truncateSnippet(source.snippet || source.content) && (
-                        <p className="text-xs text-white/50 truncate mt-1.5 italic">
-                          {truncateSnippet(source.snippet || source.content)}
-                        </p>
-                      )}
-                      <p className="text-xs text-white/30 truncate mt-1">
-                        {source.url}
-                      </p>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className={`text-sm font-semibold leading-6 ${isDark ? 'text-stone-100' : 'text-slate-800'}`}>{source.title || '无标题'}</p>
+                        <p className={`mt-2 text-sm leading-6 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{source.snippet || source.content || '暂无摘要'}</p>
+                        <p className={`mt-3 text-xs truncate ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{source.url}</p>
+                      </div>
+                      <span className={`${isDark ? 'text-amber-300' : 'text-amber-700'} text-sm`}>↗</span>
                     </div>
-                    <span className="text-white/20 group-hover/source:text-white/60 text-xs mt-0.5">↗</span>
                   </a>
                 ))}
               </div>
@@ -296,161 +301,93 @@ const DebateDashboard: React.FC<DebateDashboardProps> = ({ onBack, sources, sess
           </div>
         )}
 
-        {/* 论点整理 */}
         {activeTab === 'arguments' && (
-          <div className="max-w-6xl mx-auto">
-            {sources.length === 0 && (
-              <div className="text-white/40 text-sm mt-8 text-center mb-8">
-                💡 提示：请先在"资料索引"查看搜索结果，然后开始整理论点
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 gap-6">
-              {/* 正方论点 */}
-              <div className="flex flex-col">
-                <div className="mb-4 pb-3 border-b border-[#333]">
-                  <h2 className="text-base font-semibold text-white mb-3">正方论点 ✓</h2>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={proInputValue}
-                      onChange={(e) => setProInputValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          addArgument('pro', proInputValue);
-                        }
-                      }}
-                      placeholder="输入正方论点..."
-                      className="flex-1 px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/40 transition-colors"
-                    />
-                    <button
-                      onClick={() => addArgument('pro', proInputValue)}
-                      className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm text-white transition-colors"
-                    >
-                      添加
-                    </button>
-                  </div>
+          <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-2 gap-5">
+            {[
+              { key: 'pro', title: '正方论点', value: proInputValue, setValue: setProInputValue, items: proArguments, accent: isDark ? 'text-amber-300' : 'text-amber-700' },
+              { key: 'con', title: '反方论点', value: conInputValue, setValue: setConInputValue, items: conArguments, accent: isDark ? 'text-sky-300' : 'text-sky-700' },
+            ].map(section => (
+              <div key={section.key} className={`rounded-[30px] p-6 ${panelClass}`}>
+                <div className="flex items-center justify-between gap-4">
+                  <h2 className={`text-lg font-semibold ${section.accent}`}>{section.title}</h2>
+                  <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{section.items.length} 条</span>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  {proArguments.length === 0 ? (
-                    <div className="text-white/30 text-xs text-center py-8">
-                      暂无论点
-                    </div>
+                <div className="mt-5 flex gap-3">
+                  <input
+                    type="text"
+                    value={section.value}
+                    onChange={(e) => section.setValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        addArgument(section.key as 'pro' | 'con', section.value);
+                      }
+                    }}
+                    placeholder={`输入${section.title}...`}
+                    className={`flex-1 rounded-[22px] border px-4 py-3 text-sm focus:outline-none ${inputClass}`}
+                  />
+                  <button
+                    onClick={() => addArgument(section.key as 'pro' | 'con', section.value)}
+                    className="rounded-[22px] bg-gradient-to-r from-amber-500 via-orange-400 to-sky-500 px-5 py-3 text-sm font-semibold text-white hover:brightness-105"
+                  >
+                    添加
+                  </button>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {section.items.length === 0 ? (
+                    <div className={`rounded-[24px] p-8 text-center ${subPanelClass} ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>暂无论点</div>
                   ) : (
-                    proArguments.map(arg => (
-                      <ArgumentItem key={arg.id} argument={arg} side="pro" />
+                    section.items.map(argument => (
+                      <ArgumentItem key={argument.id} argument={argument} side={section.key as 'pro' | 'con'} />
                     ))
                   )}
                 </div>
               </div>
-
-              {/* 反方论点 */}
-              <div className="flex flex-col">
-                <div className="mb-4 pb-3 border-b border-[#333]">
-                  <h2 className="text-base font-semibold text-white mb-3">反方论点 ✗</h2>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={conInputValue}
-                      onChange={(e) => setConInputValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          addArgument('con', conInputValue);
-                        }
-                      }}
-                      placeholder="输入反方论点..."
-                      className="flex-1 px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/40 transition-colors"
-                    />
-                    <button
-                      onClick={() => addArgument('con', conInputValue)}
-                      className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm text-white transition-colors"
-                    >
-                      添加
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  {conArguments.length === 0 ? (
-                    <div className="text-white/30 text-xs text-center py-8">
-                      暂无论点
-                    </div>
-                  ) : (
-                    conArguments.map(arg => (
-                      <ArgumentItem key={arg.id} argument={arg} side="con" />
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
-        {/* AI 摘要 */}
         {activeTab === 'summary' && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
+          <div className={`max-w-5xl mx-auto rounded-[30px] p-6 ${panelClass}`}>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className={`text-lg font-semibold ${isDark ? 'text-stone-100' : 'text-slate-900'}`}>AI 辩论摘要</h2>
+                <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>根据资料与正反论点生成更方便审阅的提纲。</p>
+              </div>
               <button
                 onClick={generateSummary}
                 disabled={summaryLoading}
-                className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                  summaryLoading
-                    ? 'bg-white/10 text-white/40 cursor-not-allowed'
-                    : 'bg-white/10 hover:bg-white/20 text-white'
-                }`}
+                className={`rounded-[22px] px-5 py-3 text-sm font-semibold text-white ${summaryLoading ? 'bg-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-amber-500 via-orange-400 to-sky-500 hover:brightness-105'}`}
               >
-                {summaryLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="inline-block h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
-                    生成中...
-                  </span>
-                ) : (
-                  '✨ 生成辩论提纲'
-                )}
+                {summaryLoading ? '生成中...' : '生成辩论提纲'}
               </button>
             </div>
 
             {summaryError && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm mb-6">
-                ⚠️ {summaryError}
+              <div className={`mt-5 rounded-[24px] p-4 text-sm ${isDark ? 'bg-rose-950/40 border border-rose-700/40 text-rose-200' : 'bg-rose-50 border border-rose-200 text-rose-600'}`}>
+                {summaryError}
               </div>
             )}
 
             {summary && (
-              <div className="p-4 rounded-lg bg-[#1a1a1a] border border-[#333]">
-                <div 
-                  className="prose prose-invert max-w-none text-sm text-white/80 leading-relaxed"
-                  style={{
-                    color: 'inherit',
-                  }}
-                >
-                  {/* 简单的 markdown 渲染 */}
+              <div className={`mt-6 rounded-[26px] p-6 ${subPanelClass}`}>
+                <div className={`prose max-w-none ${isDark ? 'prose-invert' : 'prose-slate'}`}>
                   {summary.split('\n').map((line, idx) => {
-                    if (line.startsWith('# ')) {
-                      return <h1 key={idx} className="text-xl font-bold text-white mt-4 mb-2">{line.substring(2)}</h1>;
-                    }
-                    if (line.startsWith('## ')) {
-                      return <h2 key={idx} className="text-lg font-semibold text-white mt-3 mb-2">{line.substring(3)}</h2>;
-                    }
-                    if (line.startsWith('### ')) {
-                      return <h3 key={idx} className="text-base font-semibold text-white/90 mt-2 mb-1">{line.substring(4)}</h3>;
-                    }
-                    if (line.startsWith('- ') || line.startsWith('• ')) {
-                      return <li key={idx} className="ml-4 mt-1">{line.substring(2)}</li>;
-                    }
-                    if (line === '') {
-                      return <div key={idx} className="h-2"></div>;
-                    }
-                    return <p key={idx} className="mt-1">{line}</p>;
+                    if (line.startsWith('# ')) return <h1 key={idx}>{line.substring(2)}</h1>;
+                    if (line.startsWith('## ')) return <h2 key={idx}>{line.substring(3)}</h2>;
+                    if (line.startsWith('### ')) return <h3 key={idx}>{line.substring(4)}</h3>;
+                    if (line.startsWith('- ') || line.startsWith('• ')) return <li key={idx}>{line.substring(2)}</li>;
+                    if (line === '') return <div key={idx} className="h-2" />;
+                    return <p key={idx}>{line}</p>;
                   })}
                 </div>
               </div>
             )}
 
             {!summary && !summaryLoading && !summaryError && (
-              <div className="text-white/40 text-sm text-center py-12">
-                点击「生成辩论提纲」按钮开始生成 AI 摘要
+              <div className={`mt-10 rounded-[24px] p-10 text-center ${subPanelClass} ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                点击“生成辩论提纲”开始整理内容。
               </div>
             )}
           </div>

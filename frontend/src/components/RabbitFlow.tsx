@@ -28,21 +28,18 @@ interface RabbitFlowProps {
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-  // Check if any nodes are expanded
-  const hasExpandedNodes = nodes.some(node => node.type === 'mainNode' && node.data.isExpanded);
+  const hasExpandedNodes = nodes.some((node) => node.type === 'mainNode' && node.data.isExpanded);
 
   dagreGraph.setGraph({
     rankdir: 'LR',
     nodesep: 100,
-    ranksep: hasExpandedNodes ? 200 : 100,  // Adjust vertical spacing based on expansion
+    ranksep: hasExpandedNodes ? 200 : 120,
     marginx: 200,
-    marginy: hasExpandedNodes ? 200 : 100,
+    marginy: hasExpandedNodes ? 200 : 120,
     align: 'UL',
-    ranker: 'tight-tree'
+    ranker: 'tight-tree',
   });
 
-  // Add nodes to the graph with their actual dimensions
   nodes.forEach((node) => {
     const isMainNode = node.type === 'mainNode';
     dagreGraph.setNode(node.id, {
@@ -51,26 +48,25 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     });
   });
 
-  // Add edges to the graph
   edges.forEach((edge) => {
     dagreGraph.setEdge(edge.source, edge.target);
   });
 
-  // Apply layout
   dagre.layout(dagreGraph);
 
-  // Get the positioned nodes
   const newNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
+    const fallback = dagreGraph.node(node.id);
     const isMainNode = node.type === 'mainNode';
     const width = isMainNode ? 600 : 300;
     const height = isMainNode ? 500 : 100;
+    const position = {
+      x: fallback.x - width / 2,
+      y: fallback.y - height / 2,
+    };
+
     return {
       ...node,
-      position: {
-        x: nodeWithPosition.x - width / 2,
-        y: nodeWithPosition.y - height / 2,
-      },
+      position,
       targetPosition: Position.Left,
       sourcePosition: Position.Right,
     };
@@ -145,7 +141,7 @@ const RabbitFlow: React.FC<RabbitFlowProps> = ({
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
           animated: true,
-          style: { stroke: 'rgba(255, 255, 255, 0.3)' }
+          style: { stroke: 'rgba(127, 147, 169, 0.35)', strokeWidth: 1.5 }
         }}
         fitView
         zoomOnScroll={true}
@@ -155,23 +151,23 @@ const RabbitFlow: React.FC<RabbitFlowProps> = ({
         style={{ backgroundColor: 'transparent' }}
       >
         <Controls
-          className="!bg-[#111111] !border-gray-800"
+          className="!bg-white/80 !border-white/80 !shadow-[0_16px_40px_rgba(148,163,184,0.18)] !rounded-2xl"
         />
         <MiniMap
           style={{
-            backgroundColor: '#111111',
-            border: '1px solid #333333',
-            borderRadius: '4px',
+            backgroundColor: 'rgba(255,255,255,0.78)',
+            border: '1px solid rgba(255,255,255,0.85)',
+            borderRadius: '18px',
           }}
-          nodeColor="#666666"
-          maskColor="rgba(0, 0, 0, 0.7)"
+          nodeColor="#94a3b8"
+          maskColor="rgba(226, 232, 240, 0.72)"
           className="!bottom-4 !right-4"
         />
         <Background
           variant={BackgroundVariant.Dots}
-          gap={12}
-          size={1}
-          color="rgba(255, 255, 255, 0.05)"
+          gap={20}
+          size={1.4}
+          color="rgba(148, 163, 184, 0.22)"
         />
       </ReactFlow>
     </div>

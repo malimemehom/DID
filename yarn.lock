@@ -3467,7 +3467,7 @@ babel-preset-react-app@^10.0.1:
     babel-plugin-macros "^3.1.0"
     babel-plugin-transform-react-remove-prop-types "^0.4.24"
 
-"backend@file:C:\\Users\\wongt\\Desktop\\DID\\DID\\backend":
+"backend@file:C:\\Users\\wongt\\Documents\\New project\\backend":
   version "1.0.0"
   resolved "file:backend"
   dependencies:
@@ -3478,6 +3478,7 @@ babel-preset-react-app@^10.0.1:
     dotenv "^16.4.1"
     express "^4.18.2"
     jsonwebtoken "^9.0.3"
+    node-fetch "^2.7.0"
     openai "^4.26.0"
     sqlite "^5.1.1"
     sqlite3 "^5.1.7"
@@ -9465,7 +9466,7 @@ queue-microtask@^1.2.2:
   resolved "https://registry.npmjs.org/queue-microtask/-/queue-microtask-1.2.3.tgz"
   integrity sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==
 
-"rabbithole-frontend@file:C:\\Users\\wongt\\Desktop\\DID\\DID\\frontend":
+"rabbithole-frontend@file:C:\\Users\\wongt\\Documents\\New project\\frontend":
   version "0.1.0"
   resolved "file:frontend"
   dependencies:

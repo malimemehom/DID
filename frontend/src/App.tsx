@@ -17,6 +17,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('search');
   const [collectedSources, setCollectedSources] = useState<Source[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   const handleUpdateDebateInfo = useCallback((sources: Source[], sessionId: string | null) => {
     setCollectedSources(sources);
@@ -25,13 +26,15 @@ function App() {
 
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-[#050505]">
+      <div className={`min-h-screen ${theme === 'dark' ? 'theme-dark text-slate-100' : 'theme-light text-slate-900'}`}>
 
         {/* SearchView 始终存在，只是隐藏/显示 */}
         <div style={{ display: currentPage === 'search' ? 'block' : 'none' }}>
           <SearchView
             onGoToDashboard={() => setCurrentPage('dashboard')}
             onUpdateDebateInfo={handleUpdateDebateInfo}
+            theme={theme}
+            onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
           />
         </div>
 
@@ -41,6 +44,8 @@ function App() {
             onBack={() => setCurrentPage('search')}
             sources={collectedSources}
             sessionId={currentSessionId}
+            theme={theme}
+            onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
           />
         )}
 

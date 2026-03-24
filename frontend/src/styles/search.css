@@ -1,287 +1,138 @@
-@keyframes gradient-xy {
-  0% {
-    background-position: 0% 50%;
+@keyframes soft-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
   }
   50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
+    transform: translate3d(0, -14px, 0);
   }
 }
 
-@keyframes pulse-glow {
-  0% {
-    opacity: 0.4;
+@keyframes gentle-drift {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateX(16px);
+    opacity: 1;
+  }
+}
+
+@keyframes subtle-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
     transform: scale(1);
   }
   50% {
-    opacity: 0.6;
-    transform: scale(1.05);
-  }
-  100% {
-    opacity: 0.4;
-    transform: scale(1);
+    opacity: 0.9;
+    transform: scale(1.04);
   }
 }
 
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
+.soft-float {
+  animation: soft-float 10s ease-in-out infinite;
 }
 
-@keyframes spin-slow {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+.soft-drift {
+  animation: gentle-drift 9s ease-in-out infinite;
 }
 
-@keyframes reverse-spin {
-  0% {
-    transform: rotate(360deg);
-  }
-  100% {
-    transform: rotate(0deg);
-  }
+.soft-pulse {
+  animation: subtle-pulse 5s ease-in-out infinite;
 }
 
-.animate-gradient-xy {
-  animation: gradient-xy 15s ease infinite;
-  background-size: 400% 400%;
+.soft-mesh {
+  background-image:
+    linear-gradient(rgba(120, 145, 178, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 145, 178, 0.08) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.95), transparent 88%);
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 3s ease-in-out infinite;
+.soft-grid-dots {
+  background-image: radial-gradient(rgba(124, 154, 202, 0.24) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.95), transparent 82%);
 }
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-spin-slow {
-  animation: spin-slow 8s linear infinite;
-}
-
-.animate-reverse-spin {
-  animation: reverse-spin 12s linear infinite;
-}
-
-.font-mystical {
-  font-family: "Cinzel", serif;
-}
-
-.perspective-1000 {
-  perspective: 1000px;
-}
-
-.preserve-3d {
-  transform-style: preserve-3d;
-}
-
-.backface-hidden {
-  backface-visibility: hidden;
-}
-
-.rotate-y-180 {
-  transform: rotateY(180deg);
-}
-
-/* Zero Gravity Card Effects */
-.card-content {
-  transition: filter 0.3s ease;
-}
-
-.particles-active .card-content::before {
-  content: '';
+.soft-orb {
   position: absolute;
-  top: -50px;
-  left: -50px;
-  right: -50px;
-  bottom: -50px;
-  background: radial-gradient(circle at center, transparent 0%, transparent 100%);
-  opacity: 0;
-  z-index: -1;
-  animation: particle-field 2s ease infinite;
-}
-
-@keyframes particle-field {
-  0% {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 0.1;
-    transform: scale(1.1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-}
-
-.particles-active .card-content {
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.1));
-}
-
-/* Cyberpunk Background Effects */
-.cyber-grid {
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 50px 50px;
-  mask-image: radial-gradient(circle at center, black, transparent 80%);
-}
-
-.cyber-grid-dots {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-  background-size: 30px 30px;
-}
-
-.nebula-glow {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  z-index: 0;
+  border-radius: 9999px;
+  filter: blur(70px);
   pointer-events: none;
 }
 
-.nebula-glow::before,
-.nebula-glow::after {
-  content: '';
-  position: absolute;
-  width: 800px;
-  height: 800px;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.15;
-  animation: float 20s ease-in-out infinite;
+.soft-orb--one {
+  inset: auto auto 62% -10%;
+  width: 420px;
+  height: 420px;
+  background: rgba(138, 187, 255, 0.24);
 }
 
-.nebula-glow::before {
-  background: radial-gradient(circle, #00f2ff, transparent 70%);
-  top: -200px;
-  left: -200px;
+.soft-orb--two {
+  inset: 8% -6% auto auto;
+  width: 360px;
+  height: 360px;
+  background: rgba(140, 234, 255, 0.2);
+  animation-delay: -4s;
 }
 
-.nebula-glow::after {
-  background: radial-gradient(circle, #7000ff, transparent 70%);
-  bottom: -200px;
-  right: -200px;
-  animation-delay: -10s;
+.soft-orb--three {
+  inset: auto auto -10% 25%;
+  width: 340px;
+  height: 340px;
+  background: rgba(178, 199, 255, 0.18);
+  animation-delay: -7s;
 }
 
-.scanline {
-  width: 100%;
-  height: 100px;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(0, 242, 255, 0.03) 50%,
-    transparent
-  );
-  position: absolute;
-  top: -100px;
-  left: 0;
-  z-index: 1;
-  pointer-events: none;
-  animation: scanline 8s linear infinite;
+.soft-panel {
+  background: rgba(248, 251, 255, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 24px 80px rgba(148, 163, 184, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(24px);
 }
 
-@keyframes scanline {
-  0% {
-    top: -100px;
-  }
-  100% {
-    top: 100%;
-  }
+.soft-panel-strong {
+  background: linear-gradient(180deg, rgba(245, 249, 255, 0.88), rgba(231, 239, 249, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 26px 80px rgba(120, 145, 178, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(28px);
 }
 
-.cyber-overlay {
-  background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%);
-  pointer-events: none;
+.soft-chip {
+  background: rgba(244, 248, 253, 0.78);
+  border: 1px solid rgba(151, 176, 210, 0.28);
+  box-shadow: 0 12px 32px rgba(148, 163, 184, 0.12);
 }
 
-/* Glassmorphism for Cyberpunk */
-.cyber-glass {
-  background: rgba(10, 10, 10, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+.soft-ring {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 0 0 10px rgba(255, 255, 255, 0.12);
 }
 
-.neon-border-cyan {
-  border: 1px solid rgba(0, 242, 255, 0.3);
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
 }
 
-.neon-border-purple {
-  border: 1px solid rgba(112, 0, 255, 0.3);
-  box-shadow: 0 0 15px rgba(112, 0, 255, 0.1);
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.neon-text-cyan {
-  color: #00f2ff;
-  text-shadow: 0 0 8px rgba(0, 242, 255, 0.5);
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.42);
+  border-radius: 999px;
 }
 
-.neon-text-purple {
-  color: #7000ff;
-  text-shadow: 0 0 8px rgba(112, 0, 255, 0.5);
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }
-
-/* Cyber Logo Animations */
-@keyframes cyber-pulse {
-  0%, 100% {
-    filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.4)) drop-shadow(0 0 5px rgba(112, 0, 255, 0.4));
-    transform: scale(1);
-  }
-  50% {
-    filter: drop-shadow(0 0 30px rgba(0, 242, 255, 0.6)) drop-shadow(0 0 10px rgba(112, 0, 255, 0.6));
-    transform: scale(1.05);
-  }
-}
-
-@keyframes glitch-skew {
-  0% { transform: skew(0deg); }
-  20% { transform: skew(-5deg); }
-  40% { transform: skew(5deg); }
-  60% { transform: skew(-2deg); }
-  80% { transform: skew(2deg); }
-  100% { transform: skew(0deg); }
-}
-
-@keyframes dash-rotate {
-  to {
-    stroke-dashoffset: -100;
-  }
-}
-
-.animate-cyber-pulse {
-  animation: cyber-pulse 4s ease-in-out infinite;
-}
-
-.animate-glitch {
-  animation: glitch-skew 3s step-end infinite;
-  display: inline-block;
-}
-
-.cyber-svg-ring {
-  stroke-dasharray: 20 80;
-  animation: dash-rotate 10s linear infinite;
-}
-
-.cyber-svg-ring-reverse {
-  stroke-dasharray: 40 60;
-  animation: dash-rotate 15s linear infinite reverse;
-} 
