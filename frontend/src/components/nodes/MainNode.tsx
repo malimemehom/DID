@@ -293,8 +293,12 @@ const SourcePanel = ({
   sources: NonNullable<MainNodeData['sources']>;
   theme?: MainNodeData['theme'];
 }) => {
-  const [isOpen, setIsOpen] = React.useState(true);
+  const [isOpen, setIsOpen] = React.useState(false);
   const isDark = theme === 'dark';
+  const blockNodeDrag = (event: React.MouseEvent | React.PointerEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
   const validSources = React.useMemo(
     () =>
       sources.filter((source, index, array) => {
@@ -307,14 +311,17 @@ const SourcePanel = ({
   return (
     <div className={`nodrag nopan rounded-[24px] border px-5 py-4 ${isDark ? 'border-slate-700/70 bg-slate-900/45' : 'border-white/70 bg-white/45'}`}>
       <button
+        type="button"
+        onPointerDown={blockNodeDrag}
+        onMouseDown={blockNodeDrag}
         onClick={(event) => {
           event.stopPropagation();
           setIsOpen((prev) => !prev);
         }}
-        className="nodrag nopan w-full flex items-center justify-between text-left"
+        className="nodrag nopan relative z-10 w-full flex items-center justify-between text-left cursor-pointer"
       >
         <div>
-          <div className={`text-sm font-semibold ${isDark ? 'text-stone-100' : 'text-slate-800'}`}>资料来源</div>
+          <div className={`text-sm font-semibold uppercase tracking-[0.18em] ${isDark ? 'text-stone-100' : 'text-slate-800'}`}>SOURCES</div>
           <div className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{validSources.length} 条可查看资料</div>
         </div>
         <span className={`text-sm ${isDark ? 'text-amber-300' : 'text-sky-600'}`}>{isOpen ? '收起' : '展开'}</span>
@@ -328,6 +335,8 @@ const SourcePanel = ({
               href={source.url}
               target="_blank"
               rel="noopener noreferrer"
+              onPointerDown={blockNodeDrag}
+              onMouseDown={blockNodeDrag}
               onClick={(event) => event.stopPropagation()}
               className={`nodrag nopan flex items-center gap-3 p-3 rounded-2xl transition-colors ${
                 isDark ? 'bg-slate-950/45 hover:bg-slate-900/80 border border-slate-700/60' : 'bg-white/70 hover:bg-white border border-white/80'

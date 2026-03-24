@@ -14,6 +14,22 @@ interface ChatFrameProps {
   theme?: 'light' | 'dark';
 }
 
+const sanitizeMessages = (value: unknown): Message[] => {
+  if (!Array.isArray(value)) return [];
+
+  const validMessages = value.filter((item): item is Message => {
+    return (
+      typeof item === 'object' &&
+      item !== null &&
+      ((item as Message).role === 'user' || (item as Message).role === 'assistant') &&
+      typeof (item as Message).content === 'string'
+    );
+  });
+
+  const firstUserIndex = validMessages.findIndex((message) => message.role === 'user');
+  return firstUserIndex === -1 ? [] : validMessages.slice(firstUserIndex);
+};
+
 const ChatFrame: React.FC<ChatFrameProps> = ({ side, topic, onClose, theme = 'dark' }) => {
   const storageKey = `chatframe_${side}_${topic}`;
   const isDark = theme === 'dark';
@@ -21,14 +37,14 @@ const ChatFrame: React.FC<ChatFrameProps> = ({ side, topic, onClose, theme = 'da
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const saved = localStorage.getItem(`${storageKey}_messages`);
-      return saved ? JSON.parse(saved) : [];
+      return saved ? sanitizeMessages(JSON.parse(saved)) : [];
     } catch {
       return [];
     }
   });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [userStance, setUserStance] = useState<'affirmative' | 'negative' | null>(() => {
+  const [selectedStance, setSelectedStance] = useState<'affirmative' | 'negative' | null>(() => {
     try {
       const saved = localStorage.getItem(`${storageKey}_stance`);
       return saved ? JSON.parse(saved) : null;
@@ -43,11 +59,10 @@ const ChatFrame: React.FC<ChatFrameProps> = ({ side, topic, onClose, theme = 'da
   }, [messages, storageKey]);
 
   useEffect(() => {
-    localStorage.setItem(`${storageKey}_stance`, JSON.stringify(userStance));
-  }, [userStance, storageKey]);
+    localStorage.setItem(`${storageKey}_stance`, JSON.stringify(selectedStance));
+  }, [selectedStance, storageKey]);
 
-  const aiStance = userStance === 'affirmative' ? 'negative' : 'affirmative';
-  const stanceText = aiStance === 'affirmative' ? '正方' : '反方';
+  const stanceText = selectedStance === 'affirmative' ? '正方' : '反方';
   const panelTitle = side === 'left' ? '左侧 质询' : '右侧 答询';
   const shortTitle = side === 'left' ? '质询' : '答询';
 
@@ -83,7 +98,7 @@ const ChatFrame: React.FC<ChatFrameProps> = ({ side, topic, onClose, theme = 'da
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, userStance]);
+  }, [messages, selectedStance]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -118,7 +133,7 @@ const ChatFrame: React.FC<ChatFrameProps> = ({ side, topic, onClose, theme = 'da
           <h3 className={`text-sm font-semibold tracking-[0.18em] uppercase ${accent.title}`}>
             {panelTitle}
           </h3>
-          {userStance && (
+          {selectedStance && (
             <span className={`text-[11px] mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               AI立场:
               <span className={`ml-1 inline-flex rounded-full border px-2 py-0.5 font-medium ${accent.chip}`}>
@@ -138,24 +153,32 @@ const ChatFrame: React.FC<ChatFrameProps> = ({ side, topic, onClose, theme = 'da
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {!userStance ? (
+        {!selectedStance ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-6">
             <div className="space-y-2">
-              <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>请选择您的立场</p>
-              <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{shortTitle} AI 会自动选择对立立场与你辩论</p>
+              <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>请选择 AI 助手的立场</p>
+              <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{shortTitle} AI 会按你选择的正方或反方与你辩论</p>
             </div>
             <div className="flex flex-col w-full gap-3">
               <button
-                onClick={() => setUserStance('affirmative')}
+                type="button"
+                onClick={() => {
+                  setSelectedStance('affirmative');
+                  setMessages((prev) => sanitizeMessages(prev));
+                }}
                 className={`w-full py-3 rounded-2xl border text-sm transition-all duration-300 ${isDark ? 'bg-slate-900/60 border-slate-700 text-slate-200 hover:border-amber-400/60 hover:text-amber-200' : 'bg-white/70 border-white/85 text-slate-700 hover:border-amber-200 hover:text-amber-700'}`}
               >
-                我是 <span className="font-semibold">正方</span>
+                AI 是 <span className="font-semibold">正方</span>
               </button>
               <button
-                onClick={() => setUserStance('negative')}
+                type="button"
+                onClick={() => {
+                  setSelectedStance('negative');
+                  setMessages((prev) => sanitizeMessages(prev));
+                }}
                 className={`w-full py-3 rounded-2xl border text-sm transition-all duration-300 ${isDark ? 'bg-slate-900/60 border-slate-700 text-slate-200 hover:border-sky-400/60 hover:text-sky-200' : 'bg-white/70 border-white/85 text-slate-700 hover:border-sky-200 hover:text-sky-700'}`}
               >
-                我是 <span className="font-semibold">反方</span>
+                AI 是 <span className="font-semibold">反方</span>
               </button>
             </div>
           </div>
